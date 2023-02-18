@@ -1,12 +1,7 @@
-const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const ISwapRouterArtifact = require("@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json");
 const sigUtil = require("@metamask/eth-sig-util");
 const { config } = require('hardhat');
-const ERC20Artifact = require('@openzeppelin/contracts/build/contracts/ERC20.json');
-const axios = require('axios');
-const domainDataJSON = require('./util/domainData.json');
 
 const domainType = [
     { name: "name", type: "string" },
