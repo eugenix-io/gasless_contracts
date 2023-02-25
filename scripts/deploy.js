@@ -4,22 +4,20 @@
 // You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
 // will compile your contracts, add the Hardhat Runtime Environment's members to the
 // global scope, and execute the script.
-const hre = require("hardhat");
+const hre = require('hardhat');
 
 async function main() {
-  const MainMatic = await hre.ethers.getContractFactory("GaslessV2");
-  const mainMatic = await MainMatic.deploy();
+    const MainMatic = await hre.ethers.getContractFactory('GaslessV2');
+    const mainMatic = await MainMatic.deploy();
 
-  await mainMatic.deployed();
+    await mainMatic.deployed();
 
-  console.log(
-    `Deployed to ${mainMatic.address}`
-  );
+    console.log(`Deployed to ${mainMatic.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+    console.error(error);
+    process.exitCode = 1;
 });

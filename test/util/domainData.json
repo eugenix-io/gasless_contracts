@@ -1,23 +1,23 @@
 {
-    "0xc2132D05D31c914a87C6611C10748AEb04B58e8F":{
+    "0xc2132D05D31c914a87C6611C10748AEb04B58e8F": {
         "name": "(PoS) Tether USD",
         "version": "1",
         "verifyingContract": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
         "salt": "0x0000000000000000000000000000000000000000000000000000000000000089"
     },
-    "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063":{
+    "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063": {
         "name": "(PoS) Dai Stablecoin",
         "version": "1",
         "verifyingContract": "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
         "salt": "0x0000000000000000000000000000000000000000000000000000000000000089"
     },
-    "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174":{
+    "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174": {
         "name": "USD Coin (PoS)",
         "version": "1",
         "verifyingContract": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
         "salt": "0x0000000000000000000000000000000000000000000000000000000000000089"
     },
-    "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619":{
+    "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619": {
         "name": "Wrapped Ether",
         "version": "1",
         "verifyingContract": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
