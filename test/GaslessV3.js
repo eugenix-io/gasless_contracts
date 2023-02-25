@@ -18,6 +18,7 @@ const swapWithoutFees = [
     { type: 'address[]', name: 'path' },
     { type: 'uint24[]', name: 'fees' },
     { type: 'uint', name: 'nonce' },
+    { type: 'bool', name: 'isTokenOutMatic' },
 ];
 
 const getSignatureParameters = (signature) => {
@@ -29,7 +30,6 @@ const getSignatureParameters = (signature) => {
     var r = signature.slice(0, 66);
     var s = '0x'.concat(signature.slice(66, 130));
     var v = '0x'.concat(signature.slice(130, 132));
-    ethers.utils.hex;
     v = parseInt(Number(v));
     if (![27, 28].includes(v)) v += 27;
     return {
@@ -137,6 +137,12 @@ const EMTTokens = [
         ],
         fees: [500, 3000],
         amountIn: ethers.utils.parseUnits('0.01', 18),
+    },
+    {
+        testName: 'USDT -> MATIC',
+        fromTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+        toTokenAddress: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+        decimals: 6,
     },
 ];
 
@@ -273,7 +279,7 @@ function describeTestForToken(data) {
             } else if (amountIn.gt(totalBalance)) {
                 amountIn = totalBalance;
             }
-
+            const isTokenOutMatic = toTokenAddress === WMATIC;
             let params = {
                 amountIn: amountIn.toString(), //sign fails for large numbers so we need to convert to string
                 tokenIn: tokenAddress,
@@ -281,6 +287,7 @@ function describeTestForToken(data) {
                 userAddress: owner.address,
                 path: data.path && data.path.length > 0 ? data.path : [],
                 fees: data.fees && data.fees.length > 0 ? data.fees : [],
+                isTokenOutMatic: isTokenOutMatic,
             };
             let { r, s, v, nonce } = await getSignature(owner, main, params);
 
@@ -292,6 +299,7 @@ function describeTestForToken(data) {
                 data.path && data.path.length > 0 ? data.path : [],
                 data.fees && data.fees.length > 0 ? data.fees : [],
                 nonce,
+                isTokenOutMatic,
                 r,
                 s,
                 v
@@ -308,17 +316,20 @@ function describeTestForToken(data) {
             );
             let finalFeesBalContract = await token.balanceOf(main.address);
             let finalNonce = await main.nonces(owner.address);
-
-            //user gets the desired token
-            expect(finalTokenBalUser - initialTokenBalUser).greaterThan(0);
+            if (isTokenOutMatic) {
+                expect(finalMaticBalUser).greaterThan(initialMaticBalUser);
+                expect(finalTokenBalUser).equal(initialTokenBalUser);
+            } else {
+                //no matic used from the user
+                expect(finalMaticBalUser).equal(initialMaticBalUser);
+                //user gets the desired token
+                expect(finalTokenBalUser - initialTokenBalUser).greaterThan(0);
+            }
 
             //contract collects fees in from token
             expect(finalFeesBalContract - initialFeesBalContract).greaterThan(
                 0
             );
-
-            //no matic used from the user
-            expect(finalMaticBalUser).equal(initialMaticBalUser);
 
             //nonce should increment by 1
             expect(finalNonce - initialNonce).equal(1);

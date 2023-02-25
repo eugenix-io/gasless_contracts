@@ -7,6 +7,7 @@ import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import 'hardhat/console.sol';
+import './interfaces/WrappedToken.sol';
 
 contract GaslessV3 is Ownable {
     ISwapRouter public immutable swapRouter;
@@ -27,7 +28,7 @@ contract GaslessV3 is Ownable {
     bytes32 public constant META_TRANSACTION_TYPEHASH =
         keccak256(
             bytes(
-                'SwapWithoutFees(uint amountIn,address tokenIn,address tokenOut,address userAddress,address[] path,uint24[] fees,uint nonce)'
+                'SwapWithoutFees(uint amountIn,address tokenIn,address tokenOut,address userAddress,address[] path,uint24[] fees,uint nonce,bool isTokenOutMatic)'
             )
         );
 
@@ -80,6 +81,7 @@ contract GaslessV3 is Ownable {
         address[] memory path,
         uint24[] memory fees,
         uint nonce,
+        bool isTokenOutMatic,
         bytes32 sigR,
         bytes32 sigS,
         uint8 sigV
@@ -97,11 +99,15 @@ contract GaslessV3 is Ownable {
                         userAddress,
                         keccak256(abi.encodePacked(path)),
                         keccak256(abi.encodePacked(fees)),
-                        nonce
+                        nonce,
+                        isTokenOutMatic
                     )
                 )
             )
         );
+        if (tokenOut != WMATIC) {
+            isTokenOutMatic = false;
+        }
         require(
             userAddress == ecrecover(digest, sigV, sigR, sigS),
             '[SWAP WITHOUT FEES] Invalid signature'
@@ -114,7 +120,8 @@ contract GaslessV3 is Ownable {
                 tokenOut,
                 userAddress,
                 path,
-                fees
+                fees,
+                isTokenOutMatic
             );
     }
 
@@ -124,11 +131,11 @@ contract GaslessV3 is Ownable {
         address tokenOut,
         address userAddress,
         address[] memory path,
-        uint24[] memory fees
+        uint24[] memory fees,
+        bool isTokenOutMatic
     ) internal returns (uint256 amountOut) {
         ERC20 tokenContract = ERC20(tokenIn);
         tokenContract.transferFrom(userAddress, address(this), amountIn);
-
         //check if we already have the allowance for fromTokenContract
         if (
             tokenContract.allowance(address(this), address(swapRouter)) <
@@ -177,7 +184,7 @@ contract GaslessV3 is Ownable {
                     tokenIn: tokenIn,
                     tokenOut: tokenOut,
                     fee: feeTier,
-                    recipient: userAddress,
+                    recipient: isTokenOutMatic ? address(this) : userAddress,
                     deadline: block.timestamp,
                     amountIn: amountIn - swappedIn,
                     amountOutMinimum: 0,
@@ -188,12 +195,18 @@ contract GaslessV3 is Ownable {
             ISwapRouter.ExactInputParams memory paramsIn = ISwapRouter
                 .ExactInputParams({
                     path: _encodePathV3(path, fees),
-                    recipient: userAddress,
+                    recipient: isTokenOutMatic ? address(this) : userAddress,
                     deadline: block.timestamp,
                     amountIn: amountIn - swappedIn,
                     amountOutMinimum: 0
                 });
             amountOut = swapRouter.exactInput(paramsIn);
+        }
+
+        if (isTokenOutMatic) {
+            WrappedToken wrappedToken = WrappedToken(WMATIC);
+            wrappedToken.withdraw(amountOut);
+            payable(userAddress).transfer(amountOut);
         }
 
         return amountOut;
