@@ -1,13 +1,13 @@
 pragma solidity >=0.8.0 <0.9.0;
 //SPDX-License-Identifier: MIT
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol";
-import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import "hardhat/console.sol";
-import "./interfaces/WrappedToken.sol";
+import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
+import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
+import 'hardhat/console.sol';
+import './interfaces/WrappedToken.sol';
 
 contract GaslessV3 is Ownable {
     ISwapRouter public immutable swapRouter;
@@ -22,13 +22,13 @@ contract GaslessV3 is Ownable {
     uint public gasForSwap = 130000;
     bool public convertFeesToMatic = false;
     bytes32 public DOMAIN_SEPARATOR;
-    string public constant name = "Flint Gasless";
-    string public EIP712_VERSION = "1";
+    string public constant name = 'Flint Gasless';
+    string public EIP712_VERSION = '1';
     mapping(address => uint) public nonces;
     bytes32 public constant META_TRANSACTION_TYPEHASH =
         keccak256(
             bytes(
-                "SwapWithoutFees(uint amountIn,address tokenIn,address tokenOut,address userAddress,address[] path,uint24[] fees,uint nonce,bool isTokenOutMatic)"
+                'SwapWithoutFees(uint amountIn,address tokenIn,address tokenOut,address userAddress,address[] path,uint24[] fees,uint nonce,bool isTokenOutMatic)'
             )
         );
 
@@ -38,7 +38,7 @@ contract GaslessV3 is Ownable {
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 keccak256(
-                    "EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)"
+                    'EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)'
                 ),
                 keccak256(bytes(name)),
                 keccak256(bytes(EIP712_VERSION)),
@@ -88,7 +88,7 @@ contract GaslessV3 is Ownable {
     ) external returns (uint256 amountOut) {
         bytes32 digest = keccak256(
             abi.encodePacked(
-                "\x19\x01",
+                '\x19\x01',
                 DOMAIN_SEPARATOR,
                 keccak256(
                     abi.encode(
@@ -110,9 +110,9 @@ contract GaslessV3 is Ownable {
         }
         require(
             userAddress == ecrecover(digest, sigV, sigR, sigS),
-            "[SWAP WITHOUT FEES] Invalid signature"
+            '[SWAP WITHOUT FEES] Invalid signature'
         );
-        require(nonce == nonces[userAddress]++, "Invalid nonce");
+        require(nonce == nonces[userAddress]++, 'Invalid nonce');
         return
             _swapWithoutFees(
                 amountIn,
