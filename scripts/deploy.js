@@ -7,7 +7,7 @@
 const hre = require('hardhat');
 
 async function main() {
-    const MainMatic = await hre.ethers.getContractFactory('GaslessV2');
+    const MainMatic = await hre.ethers.getContractFactory('GaslessV3');
     const mainMatic = await MainMatic.deploy();
 
     await mainMatic.deployed();

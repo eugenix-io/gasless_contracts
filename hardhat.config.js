@@ -1,5 +1,6 @@
 require('hardhat-gas-reporter');
 require('@nomicfoundation/hardhat-toolbox');
+require('dotenv').config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -28,9 +29,7 @@ module.exports = {
         },
         polygon_mainnet: {
             url: 'https://polygon-mainnet.g.alchemy.com/v2/OUyLer3Ubv9iwexAqckuwyPtJ_KczKRD',
-            accounts: [
-                '0x45dcce842cede0741a2cfd3de6f7aeaccce52cc8f1266d59ebc1fe0787ec8e84',
-            ],
+            accounts: [process.env.DEPLOY_PRIVATE_KEY],
         },
     },
     gasReporter: {
