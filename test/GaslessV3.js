@@ -2,6 +2,19 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const sigUtil = require('@metamask/eth-sig-util');
 const { config } = require('hardhat');
+const {
+    AlphaRouter,
+    ChainId,
+    SwapType,
+    SwapOptionsSwapRouter02,
+} = require('@uniswap/smart-order-router');
+const {
+    TradeType,
+    CurrencyAmount,
+    Percent,
+    Token,
+    SupportedChainId,
+} = require('@uniswap/sdk-core');
 
 const domainType = [
     { name: 'name', type: 'string' },
@@ -144,6 +157,61 @@ const EMTTokens = [
         toTokenAddress: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
         decimals: 6,
     },
+    {
+        testName: 'BUSD -> USDT',
+        fromTokenAddress: '0xdab529f40e671a1d4bf91361c21bf9f0c9712ab7',
+        toTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+        decimals: 18,
+        path: [
+            '0xdab529f40e671a1d4bf91361c21bf9f0c9712ab7',
+            '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+        ],
+        fees: [10000],
+        maticFeeTier: 10000,
+        amountIn: ethers.utils.parseUnits('1', 18),
+    },
+    {
+        testName: 'USDT -> USDC',
+        fromTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+        toTokenAddress: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+        decimals: 6,
+        path: [
+            '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+            '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+        ],
+        fees: [100],
+        maticFeeTier: 3000,
+    },
+    {
+        testName: 'SUSHI -> USDT Multihop',
+        fromTokenAddress: '0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a',
+        toTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+        decimals: 18,
+        path: [
+            '0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a',
+            '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+            '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+        ],
+        fees: [3000, 500],
+    },
+    {
+        testName: 'VOXEL -> USDT (Multihop to get WMAtIC)',
+        fromTokenAddress: '0xd0258a3fD00f38aa8090dfee343f10A9D4d30D3F',
+        toTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+        decimals: 18,
+        path: [
+            '0xd0258a3fD00f38aa8090dfee343f10A9D4d30D3F',
+            '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+            '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+        ],
+        fees: [10000, 100],
+        acquireTokenPath: [
+            '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+            '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+            '0xd0258a3fD00f38aa8090dfee343f10A9D4d30D3F',
+        ],
+        acquireTokenFee: ['500', '10000'],
+    },
 ];
 
 const WMATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
@@ -220,7 +288,7 @@ function describeTestForToken(data) {
         let toTokenAddress = data.toTokenAddress;
 
         this.beforeAll(async () => {
-            token = await ethers.getContractAt('IERC20', tokenAddress, owner);
+            token = await ethers.getContractAt('ERC20', tokenAddress, owner);
         });
 
         it('Get token from Uniswap', async () => {
@@ -228,22 +296,45 @@ function describeTestForToken(data) {
                 'ISwapRouter',
                 await main.SWAP_ROUTER_ADDRESS()
             );
-            await swapRouter.exactInputSingle(
-                {
-                    tokenIn: WMATIC,
-                    tokenOut: tokenAddress,
-                    fee: 3000,
-                    recipient: owner.address,
-                    deadline:
-                        (await ethers.provider.getBlock()).timestamp + 1000,
-                    amountIn: ethers.utils.parseEther('1000'),
-                    amountOutMinimum: 0,
-                    sqrtPriceLimitX96: 0,
-                },
-                {
-                    value: ethers.utils.parseEther('1000'),
+
+            let swapParams = {
+                recipient: owner.address,
+                deadline: (await ethers.provider.getBlock()).timestamp + 1000,
+                amountIn: ethers.utils.parseEther('500'),
+                amountOutMinimum: 0,
+            };
+            if (data.acquireTokenPath && data.acquireTokenPath.length > 2) {
+                let types = ['address'];
+                let values = [data.acquireTokenPath[0]];
+                for (let i = 0; i < data.acquireTokenPath.length - 1; i++) {
+                    types.push('uint24');
+                    types.push('address');
+                    values.push(data.acquireTokenFee[i]);
+                    values.push(data.acquireTokenPath[i + 1]);
                 }
-            );
+                await swapRouter.exactInput(
+                    {
+                        path: ethers.utils.solidityPack(types, values),
+                        ...swapParams,
+                    },
+                    {
+                        value: ethers.utils.parseEther('500'),
+                    }
+                );
+            } else {
+                await swapRouter.exactInputSingle(
+                    {
+                        tokenIn: WMATIC,
+                        tokenOut: tokenAddress,
+                        fee: data.maticFeeTier ? data.maticFeeTier : 3000,
+                        sqrtPriceLimitX96: 0,
+                        ...swapParams,
+                    },
+                    {
+                        value: ethers.utils.parseEther('500'),
+                    }
+                );
+            }
             let tokenBalance = await token.balanceOf(owner.address);
             expect(tokenBalance).greaterThan(0);
         });
@@ -279,6 +370,26 @@ function describeTestForToken(data) {
             } else if (amountIn.gt(totalBalance)) {
                 amountIn = totalBalance;
             }
+
+            let uniswapGas = await main.gasForSwap();
+            let [toMaticPath, toMaticFees] = await getRoute(
+                ethers.utils.parseUnits('100', 'gwei') * uniswapGas,
+                new Token(
+                    SupportedChainId.POLYGON,
+                    tokenAddress,
+                    data.decimals,
+                    await token.symbol(),
+                    await token.name()
+                ),
+                new Token(
+                    SupportedChainId.POLYGON,
+                    WMATIC,
+                    18,
+                    'WMATIC',
+                    'Wrapped Matic'
+                )
+            );
+
             const isTokenOutMatic = toTokenAddress === WMATIC;
             let params = {
                 amountIn: amountIn.toString(), //sign fails for large numbers so we need to convert to string
@@ -288,22 +399,22 @@ function describeTestForToken(data) {
                 path: data.path && data.path.length > 0 ? data.path : [],
                 fees: data.fees && data.fees.length > 0 ? data.fees : [],
                 isTokenOutMatic: isTokenOutMatic,
+                toMaticPath: toMaticPath.reverse(),
+                toMaticFees: toMaticFees.reverse(),
             };
+
             let { r, s, v, nonce } = await getSignature(owner, main, params);
 
-            let tx = await mainRelayer.swapWithoutFees(
-                amountIn,
-                tokenAddress,
-                toTokenAddress,
-                owner.address,
-                data.path && data.path.length > 0 ? data.path : [],
-                data.fees && data.fees.length > 0 ? data.fees : [],
-                nonce,
-                isTokenOutMatic,
-                r,
-                s,
-                v
-            );
+            console.log('THESE ARE THE PARAMS - ', params);
+
+            console.log('GOING TO DO THE SWAP NOW!!');
+            let tx = await mainRelayer.swapWithoutFees({
+                ...params,
+                sigR: r,
+                sigS: s,
+                sigV: v,
+                nonce: nonce,
+            });
             let txWait = await tx.wait();
             console.log(
                 `This is gas used for ${data.testName} - `,
@@ -344,4 +455,32 @@ function getRelayerSigner() {
         accounts.path + `/${1}`
     );
     return new ethers.Wallet(relayerWallet.privateKey, ethers.provider);
+}
+
+async function getRoute(amountOut, tokenIn, tokenOut) {
+    const router = new AlphaRouter({
+        chainId: ChainId.POLYGON,
+        provider: new ethers.providers.JsonRpcProvider(
+            'https://polygon-mainnet.g.alchemy.com/v2/OUyLer3Ubv9iwexAqckuwyPtJ_KczKRD'
+        ),
+    });
+
+    const options = {
+        recipient: main.address,
+        slippageTolerance: new Percent(5, 100),
+        deadline: Math.floor(Date.now() / 1000 + 1800),
+        type: SwapType.SWAP_ROUTER_02,
+    };
+
+    const route = await router.route(
+        CurrencyAmount.fromRawAmount(tokenOut, String(amountOut)),
+        tokenIn,
+        TradeType.EXACT_OUTPUT,
+        options
+    );
+
+    let tokenPath = route.route[0].route.tokenPath.map((path) => path.address);
+    let feePath = route.route[0].route.pools.map((pool) => pool.fee);
+    console.log('THIS IS TOKEN PATH - ', tokenPath, ' fee path - ', feePath);
+    return [tokenPath, feePath];
 }
