@@ -12,7 +12,7 @@ import './interfaces/WrappedToken.sol';
 contract GaslessV3 is Ownable {
     ISwapRouter public immutable swapRouter;
     IQuoter public immutable quoter;
-    address public constant WMATIC = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
+    address public WrappedNative;
     address public constant SWAP_ROUTER_ADDRESS =
         0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address public constant QUOTER_ADDRESS =
@@ -27,11 +27,11 @@ contract GaslessV3 is Ownable {
     bytes32 public constant META_TRANSACTION_TYPEHASH =
         keccak256(
             bytes(
-                'SwapWithoutFees(uint amountIn,address tokenIn,address tokenOut,address userAddress,address[] path,uint24[] fees,uint nonce,bool isTokenOutMatic)'
+                'SwapWithoutFees(uint amountIn,address tokenIn,address tokenOut,address userAddress,address[] path,uint24[] fees,uint nonce,bool isTokenOutNative)'
             )
         );
 
-    constructor() {
+    constructor(address wrappedNativeTokenAddress) {
         swapRouter = ISwapRouter(SWAP_ROUTER_ADDRESS);
         quoter = IQuoter(QUOTER_ADDRESS);
         DOMAIN_SEPARATOR = keccak256(
@@ -45,6 +45,7 @@ contract GaslessV3 is Ownable {
                 bytes32(getChainId())
             )
         );
+        WrappedNative = wrappedNativeTokenAddress;
     }
 
     function getBalance() public view returns (uint256) {
@@ -76,9 +77,9 @@ contract GaslessV3 is Ownable {
         address[] path;
         uint24[] fees;
         uint nonce;
-        bool isTokenOutMatic;
-        address[] toMaticPath;
-        uint24[] toMaticFees;
+        bool isTokenOutNative;
+        address[] toNativePath;
+        uint24[] toNativeFees;
         bytes32 sigR;
         bytes32 sigS;
         uint8 sigV;
@@ -96,7 +97,7 @@ contract GaslessV3 is Ownable {
             params.path,
             params.fees,
             params.nonce,
-            params.isTokenOutMatic
+            params.isTokenOutNative
         );
         console.log('verifying digest');
         _verifyDigest(
@@ -108,8 +109,8 @@ contract GaslessV3 is Ownable {
             params.nonce
         );
 
-        if (params.tokenOut != WMATIC) {
-            params.isTokenOutMatic = false;
+        if (params.tokenOut != WrappedNative) {
+            params.isTokenOutNative = false;
         }
 
         console.log('internal swap');
@@ -140,25 +141,28 @@ contract GaslessV3 is Ownable {
             );
         }
 
-        //convert input token into Matic to collect the fees
+        //convert input token into Native to collect the fees
         uint swappedIn = 0;
         uint uniswapFees = tx.gasprice > 0
             ? gasForSwap * tx.gasprice
             : gasForSwap * 1000 gwei;
 
-        // require(
-        //     params.toMaticPath[params.toMaticPath.length - 1] == WMATIC,
-        //     'Fees should be collected according to WMATIC price'
-        // );
-        // require(
-        //     params.toMaticPath[0] == params.tokenIn,
-        //     'Fees should be collected in tokenIn'
-        // );
+        require(
+            params.toNativePath[params.toNativePath.length - 1] ==
+                params.tokenIn,
+            'Fees should be collected in tokenIn'
+        );
+        require(
+            params.toNativePath[0] == WrappedNative,
+            'Fees should be collected according to WrappedNative price'
+        );
 
         console.log('GETTING THE SWAPPED IN AMOUNT');
-        console.logBytes(_encodePathV3(params.toMaticPath, params.toMaticFees));
+        console.logBytes(
+            _encodePathV3(params.toNativePath, params.toNativeFees)
+        );
         swappedIn = quoter.quoteExactOutput(
-            _encodePathV3(params.toMaticPath, params.toMaticFees),
+            _encodePathV3(params.toNativePath, params.toNativeFees),
             uniswapFees
         );
 
@@ -173,7 +177,7 @@ contract GaslessV3 is Ownable {
                     tokenIn: params.tokenIn,
                     tokenOut: params.tokenOut,
                     fee: feeTier,
-                    recipient: params.isTokenOutMatic
+                    recipient: params.isTokenOutNative
                         ? address(this)
                         : params.userAddress,
                     deadline: block.timestamp,
@@ -186,7 +190,7 @@ contract GaslessV3 is Ownable {
             ISwapRouter.ExactInputParams memory paramsIn = ISwapRouter
                 .ExactInputParams({
                     path: _encodePathV3(params.path, params.fees),
-                    recipient: params.isTokenOutMatic
+                    recipient: params.isTokenOutNative
                         ? address(this)
                         : params.userAddress,
                     deadline: block.timestamp,
@@ -196,8 +200,8 @@ contract GaslessV3 is Ownable {
             amountOut = swapRouter.exactInput(paramsIn);
         }
 
-        if (params.isTokenOutMatic) {
-            WrappedToken wrappedToken = WrappedToken(WMATIC);
+        if (params.isTokenOutNative) {
+            WrappedToken wrappedToken = WrappedToken(WrappedNative);
             wrappedToken.withdraw(amountOut);
             payable(params.userAddress).transfer(amountOut);
         }
@@ -228,7 +232,7 @@ contract GaslessV3 is Ownable {
         address[] memory path,
         uint24[] memory fees,
         uint nonce,
-        bool isTokenOutMatic
+        bool isTokenOutNative
     ) internal returns (bytes32) {
         return
             keccak256(
@@ -245,7 +249,7 @@ contract GaslessV3 is Ownable {
                             keccak256(abi.encodePacked(path)),
                             keccak256(abi.encodePacked(fees)),
                             nonce,
-                            isTokenOutMatic
+                            isTokenOutNative
                         )
                     )
                 )

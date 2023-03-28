@@ -7,12 +7,14 @@
 const hre = require('hardhat');
 
 async function main() {
-    const MainMatic = await hre.ethers.getContractFactory('GaslessV3');
-    const mainMatic = await MainMatic.deploy();
+    const ContractFactory = await hre.ethers.getContractFactory('GaslessV3');
+    const contract = await ContractFactory.deploy(
+        hre.network.config.wrappedTokenAddress
+    );
 
-    await mainMatic.deployed();
+    await contract.deployed();
 
-    console.log(`Deployed to ${mainMatic.address}`);
+    console.log(`Deployed to ${contract.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

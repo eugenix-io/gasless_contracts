@@ -2,19 +2,19 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const sigUtil = require('@metamask/eth-sig-util');
 const { config } = require('hardhat');
-const {
-    AlphaRouter,
-    ChainId,
-    SwapType,
-    SwapOptionsSwapRouter02,
-} = require('@uniswap/smart-order-router');
-const {
-    TradeType,
-    CurrencyAmount,
-    Percent,
-    Token,
-    SupportedChainId,
-} = require('@uniswap/sdk-core');
+const axios = require('axios');
+
+const getTestCases = () => {
+    switch (process.env.TEST_NETWORK) {
+        case 'polygon':
+            return require('./testCases/polygon');
+        case 'arbitrum':
+            return require('./testCases/arbitrum');
+    }
+    throw 'TEST_NETWORK must be defined to run test cases';
+};
+
+const TestCases = getTestCases();
 
 const domainType = [
     { name: 'name', type: 'string' },
@@ -31,7 +31,7 @@ const swapWithoutFees = [
     { type: 'address[]', name: 'path' },
     { type: 'uint24[]', name: 'fees' },
     { type: 'uint', name: 'nonce' },
-    { type: 'bool', name: 'isTokenOutMatic' },
+    { type: 'bool', name: 'isTokenOutNative' },
 ];
 
 const getSignatureParameters = (signature) => {
@@ -57,7 +57,10 @@ async function getSignature(wallet, mainContract, message) {
         name: await mainContract.name(),
         version: '1',
         verifyingContract: mainContract.address,
-        salt: '0x0000000000000000000000000000000000000000000000000000000000000089',
+        salt: ethers.utils.hexZeroPad(
+            `0x${config.networks.hardhat.chainId.toString(16)}`,
+            32
+        ),
     };
 
     let nonce = await main.nonces(wallet.address);
@@ -82,145 +85,13 @@ async function getSignature(wallet, mainContract, message) {
     return { ...getSignatureParameters(signature), nonce };
 }
 
-const EMTTokens = [
-    {
-        testName: 'USDT -> DAI Single',
-        fromTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        toTokenAddress: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063',
-        decimals: 6,
-    },
-    {
-        testName: 'DAI -> USDT Single',
-        fromTokenAddress: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063',
-        toTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        decimals: 18,
-    },
-    {
-        testName: 'USDC -> DAI Single',
-        fromTokenAddress: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-        toTokenAddress: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063',
-        nonceFunction: 'nonces',
-        decimals: 6,
-    },
-    {
-        testName: 'USDT -> SUSHI Multihop',
-        fromTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        toTokenAddress: '0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a',
-        decimals: 6,
-        path: [
-            '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-            '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
-            '0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a',
-        ],
-        fees: [500, 3000],
-    },
-    {
-        testName: 'USDT -> ANKR Multihop',
-        fromTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        toTokenAddress: '0x101A023270368c0D50BFfb62780F4aFd4ea79C35',
-        decimals: 6,
-        path: [
-            '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-            '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
-            '0x101A023270368c0D50BFfb62780F4aFd4ea79C35',
-        ],
-        fees: [10000, 3000],
-    },
-    {
-        testName: 'USDT -> BAL Multihop',
-        fromTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        toTokenAddress: '0x9a71012B13CA4d3D0Cdc72A177DF3ef03b0E76A3',
-        decimals: 6,
-        path: [
-            '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-            '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-            '0x9a71012B13CA4d3D0Cdc72A177DF3ef03b0E76A3',
-        ],
-        fees: [100, 10000],
-    },
-    {
-        testName: 'WETH -> QUICK Multihop',
-        fromTokenAddress: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
-        toTokenAddress: '0x831753DD7087CaC61aB5644b308642cc1c33Dc13',
-        decimals: 18,
-        path: [
-            '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
-            '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
-            '0x831753DD7087CaC61aB5644b308642cc1c33Dc13',
-        ],
-        fees: [500, 3000],
-        amountIn: ethers.utils.parseUnits('0.01', 18),
-    },
-    {
-        testName: 'USDT -> MATIC',
-        fromTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        toTokenAddress: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
-        decimals: 6,
-    },
-    {
-        testName: 'BUSD -> USDT',
-        fromTokenAddress: '0xdab529f40e671a1d4bf91361c21bf9f0c9712ab7',
-        toTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        decimals: 18,
-        path: [
-            '0xdab529f40e671a1d4bf91361c21bf9f0c9712ab7',
-            '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        ],
-        fees: [10000],
-        maticFeeTier: 10000,
-        amountIn: ethers.utils.parseUnits('1', 18),
-    },
-    {
-        testName: 'USDT -> USDC',
-        fromTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        toTokenAddress: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-        decimals: 6,
-        path: [
-            '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-            '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-        ],
-        fees: [100],
-        maticFeeTier: 3000,
-    },
-    {
-        testName: 'SUSHI -> USDT Multihop',
-        fromTokenAddress: '0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a',
-        toTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        decimals: 18,
-        path: [
-            '0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a',
-            '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
-            '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        ],
-        fees: [3000, 500],
-    },
-    {
-        testName: 'VOXEL -> USDT (Multihop to get WMAtIC)',
-        fromTokenAddress: '0xd0258a3fD00f38aa8090dfee343f10A9D4d30D3F',
-        toTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        decimals: 18,
-        path: [
-            '0xd0258a3fD00f38aa8090dfee343f10A9D4d30D3F',
-            '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-            '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-        ],
-        fees: [10000, 100],
-        acquireTokenPath: [
-            '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
-            '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-            '0xd0258a3fD00f38aa8090dfee343f10A9D4d30D3F',
-        ],
-        acquireTokenFee: ['500', '10000'],
-    },
-];
-
-const WMATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
+const WrappedNative = config.networks.hardhat.wrappedTokenAddress;
 let main;
 let owner;
 describe('Generic Contract Functions', function () {
     before(async () => {
         const Main = await ethers.getContractFactory('GaslessV3');
-        main = await Main.deploy();
+        main = await Main.deploy(WrappedNative);
         console.log('MAIN ADDRESS FIRST DEPLOYMENT - ', main.address);
     });
 
@@ -271,11 +142,11 @@ describe('Generic Contract Functions', function () {
     describe('Swap without fees for all tokens', function () {
         before(async () => {
             const Main = await ethers.getContractFactory('GaslessV3');
-            main = await Main.deploy();
+            main = await Main.deploy(WrappedNative);
             console.log('MAIN ADDRESS SECOND DEPLOYMENT - ', main.address);
         });
 
-        EMTTokens.forEach((data) => {
+        TestCases.forEach((data) => {
             describeTestForToken(data);
         });
     });
@@ -324,9 +195,9 @@ function describeTestForToken(data) {
             } else {
                 await swapRouter.exactInputSingle(
                     {
-                        tokenIn: WMATIC,
+                        tokenIn: WrappedNative,
                         tokenOut: tokenAddress,
-                        fee: data.maticFeeTier ? data.maticFeeTier : 3000,
+                        fee: data.nativeFeeTier ? data.nativeFeeTier : 3000,
                         sqrtPriceLimitX96: 0,
                         ...swapParams,
                     },
@@ -354,7 +225,7 @@ function describeTestForToken(data) {
 
             let toToken = await ethers.getContractAt('ERC20', toTokenAddress);
             let initialTokenBalUser = await toToken.balanceOf(owner.address);
-            let initialMaticBalUser = await ethers.provider.getBalance(
+            let initialnativeBalUser = await ethers.provider.getBalance(
                 owner.address
             );
             let initialFeesBalContract = await token.balanceOf(main.address);
@@ -372,25 +243,14 @@ function describeTestForToken(data) {
             }
 
             let uniswapGas = await main.gasForSwap();
-            let [toMaticPath, toMaticFees] = await getRoute(
+            let [tonativePath, tonativeFees] = await getRoute(
                 ethers.utils.parseUnits('100', 'gwei') * uniswapGas,
-                new Token(
-                    SupportedChainId.POLYGON,
-                    tokenAddress,
-                    data.decimals,
-                    await token.symbol(),
-                    await token.name()
-                ),
-                new Token(
-                    SupportedChainId.POLYGON,
-                    WMATIC,
-                    18,
-                    'WMATIC',
-                    'Wrapped Matic'
-                )
+                'exactOut',
+                tokenAddress,
+                WrappedNative
             );
 
-            const isTokenOutMatic = toTokenAddress === WMATIC;
+            const isTokenOutnative = toTokenAddress === WrappedNative;
             let params = {
                 amountIn: amountIn.toString(), //sign fails for large numbers so we need to convert to string
                 tokenIn: tokenAddress,
@@ -398,9 +258,9 @@ function describeTestForToken(data) {
                 userAddress: owner.address,
                 path: data.path && data.path.length > 0 ? data.path : [],
                 fees: data.fees && data.fees.length > 0 ? data.fees : [],
-                isTokenOutMatic: isTokenOutMatic,
-                toMaticPath: toMaticPath.reverse(),
-                toMaticFees: toMaticFees.reverse(),
+                isTokenOutNative: isTokenOutnative,
+                toNativePath: tonativePath.reverse(),
+                toNativeFees: tonativeFees.reverse(),
             };
 
             let { r, s, v, nonce } = await getSignature(owner, main, params);
@@ -422,17 +282,17 @@ function describeTestForToken(data) {
             );
 
             let finalTokenBalUser = await toToken.balanceOf(owner.address);
-            let finalMaticBalUser = await ethers.provider.getBalance(
+            let finalnativeBalUser = await ethers.provider.getBalance(
                 owner.address
             );
             let finalFeesBalContract = await token.balanceOf(main.address);
             let finalNonce = await main.nonces(owner.address);
-            if (isTokenOutMatic) {
-                expect(finalMaticBalUser).greaterThan(initialMaticBalUser);
+            if (isTokenOutnative) {
+                expect(finalnativeBalUser).greaterThan(initialnativeBalUser);
                 expect(finalTokenBalUser).equal(initialTokenBalUser);
             } else {
-                //no matic used from the user
-                expect(finalMaticBalUser).equal(initialMaticBalUser);
+                //no native used from the user
+                expect(finalnativeBalUser).equal(initialnativeBalUser);
                 //user gets the desired token
                 expect(finalTokenBalUser - initialTokenBalUser).greaterThan(0);
             }
@@ -457,30 +317,23 @@ function getRelayerSigner() {
     return new ethers.Wallet(relayerWallet.privateKey, ethers.provider);
 }
 
-async function getRoute(amountOut, tokenIn, tokenOut) {
-    const router = new AlphaRouter({
-        chainId: ChainId.POLYGON,
-        provider: new ethers.providers.JsonRpcProvider(
-            'https://polygon-mainnet.g.alchemy.com/v2/OUyLer3Ubv9iwexAqckuwyPtJ_KczKRD'
-        ),
-    });
-
-    const options = {
-        recipient: main.address,
-        slippageTolerance: new Percent(5, 100),
-        deadline: Math.floor(Date.now() / 1000 + 1800),
-        type: SwapType.SWAP_ROUTER_02,
-    };
-
-    const route = await router.route(
-        CurrencyAmount.fromRawAmount(tokenOut, String(amountOut)),
-        tokenIn,
-        TradeType.EXACT_OUTPUT,
-        options
+async function getRoute(amount, type, tokenIn, tokenOut) {
+    const validTypes = ['exactIn', 'exactOut'];
+    if (!validTypes.includes(type)) {
+        throw `Type must be one of - ${validTypes}`;
+    }
+    const response = await axios.get(
+        `https://api.uniswap.org/v1/quote?protocols=v2%2Cv3%2Cmixed&tokenInAddress=${tokenIn}&tokenInChainId=${config.networks.hardhat.chainId}&tokenOutAddress=${tokenOut}&tokenOutChainId=${config.networks.hardhat.chainId}&amount=${amount}&type=exactOut`,
+        {
+            headers: {
+                origin: 'https://app.uniswap.org',
+            },
+        }
     );
-
-    let tokenPath = route.route[0].route.tokenPath.map((path) => path.address);
-    let feePath = route.route[0].route.pools.map((pool) => pool.fee);
-    console.log('THIS IS TOKEN PATH - ', tokenPath, ' fee path - ', feePath);
+    let tokenPath = [
+        ...response.data.route[0].map((pair) => pair.tokenIn.address),
+        tokenOut,
+    ];
+    let feePath = response.data.route[0].map((pair) => pair.fee);
     return [tokenPath, feePath];
 }
