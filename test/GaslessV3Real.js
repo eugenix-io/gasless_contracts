@@ -3,17 +3,25 @@ const { ethers } = require('hardhat');
 
 const realTxn = [
     {
-        amountIn: 5000000,
-        tokenIn: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-        tokenOut: '0xB7b31a6BC18e48888545CE79e83E06003bE70930',
-        userAddress: '0x80E2dB20022F9a4c372897F97C09dbCb74C12820',
-        path: [],
-        fees: [],
+        amountIn: 1383229n,
+        tokenIn: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+        tokenOut: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+        userAddress: '0xf1f73c677dbfff4147e57c2db22997998d282138',
+        path: [
+            '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+            '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+        ],
+        fees: ['500'],
         nonce: 0,
-        isTokenOutMatic: false,
-        sigR: '0x374dc3a4b15a9f4a819f19c90b055252b171af270527bd38602bf1d747f66f07',
-        sigS: '0x1f4392c011348c096c586d85c9b6566358d9ea3ecd56cc57f31b21e09058a153',
+        sigR: '0x9699d776f2746468cecbf882543504acc6699a195c6de04b728cdb537734a2ef',
+        sigS: '0x3d9c7d6c68975cce62a4663ec50178139c44ef65efeba3293d9ac43a42be2bfa',
         sigV: 27,
+        toNativePath: [
+            '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+            '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+        ],
+        toNativeFees: ['500'],
+        isTokenOutNative: true,
     },
 ];
 
@@ -32,23 +40,10 @@ describe('Generic Contract Functions', function () {
 
 function setupRealTest(test) {
     it('Do transaction', async () => {
-        let tx = await main.swapWithoutFees(
-            test.amountIn,
-            test.tokenIn,
-            test.tokenOut,
-            test.userAddress,
-            test.path,
-            test.fees,
-            test.nonce,
-            test.isTokenOutMatic,
-            test.sigR,
-            test.sigS,
-            test.sigV,
-            {
-                gasPrice: ethers.utils.parseUnits('125.021414089', 'gwei'),
-                gasLimit: 200000,
-            }
-        );
+        let tx = await main.swapWithoutFees(test, {
+            gasPrice: ethers.utils.parseUnits('125.021414089', 'gwei'),
+            gasLimit: 200000,
+        });
         let txWait = await tx.wait();
         console.log(txWait);
     });

@@ -3,6 +3,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
@@ -24,12 +25,50 @@ contract GaslessV3 is Ownable {
     string public constant name = 'Flint Gasless';
     string public EIP712_VERSION = '1';
     mapping(address => uint) public nonces;
-    bytes32 public constant META_TRANSACTION_TYPEHASH =
+    mapping(address => uint) public approvalNonces;
+    bytes32 public constant GASLESS_SWAP_TYPEHASH =
         keccak256(
             bytes(
                 'SwapWithoutFees(uint amountIn,address tokenIn,address tokenOut,address userAddress,address[] path,uint24[] fees,uint nonce,bool isTokenOutNative)'
             )
         );
+    bytes32 public constant GASLESS_APPROVAL_TYPEHASH =
+        keccak256(
+            bytes(
+                'ApproveWithoutFees(address userAddress,bytes32 approvalSigR,bytes32 approvalSigS,uint8 approvalSigV,address tokenAddress,uint approvalValue,uint approvalDeadline,uint fees,uint nonce)'
+            )
+        );
+
+    struct SwapWithoutFeesParams {
+        uint amountIn;
+        address tokenIn;
+        address tokenOut;
+        address userAddress;
+        address[] path;
+        uint24[] fees;
+        uint nonce;
+        bool isTokenOutNative;
+        address[] toNativePath;
+        uint24[] toNativeFees;
+        bytes32 sigR;
+        bytes32 sigS;
+        uint8 sigV;
+    }
+
+    struct ApproveWithoutFeesParams {
+        address userAddress;
+        bytes32 approvalSigR;
+        bytes32 approvalSigS;
+        uint8 approvalSigV;
+        address tokenAddress;
+        uint approvalValue;
+        uint approvalDeadline;
+        uint fees;
+        uint nonce;
+        bytes32 sigR;
+        bytes32 sigS;
+        uint8 sigV;
+    }
 
     constructor(address wrappedNativeTokenAddress) {
         swapRouter = ISwapRouter(SWAP_ROUTER_ADDRESS);
@@ -67,22 +106,6 @@ contract GaslessV3 is Ownable {
 
     function setGasForSwap(uint newGasForSwap) external onlyOwner {
         gasForSwap = newGasForSwap;
-    }
-
-    struct SwapWithoutFeesParams {
-        uint amountIn;
-        address tokenIn;
-        address tokenOut;
-        address userAddress;
-        address[] path;
-        uint24[] fees;
-        uint nonce;
-        bool isTokenOutNative;
-        address[] toNativePath;
-        uint24[] toNativeFees;
-        bytes32 sigR;
-        bytes32 sigS;
-        uint8 sigV;
     }
 
     function swapWithoutFees(
@@ -209,6 +232,51 @@ contract GaslessV3 is Ownable {
         return amountOut;
     }
 
+    function approveWithoutFees(
+        ApproveWithoutFeesParams memory params
+    ) external {
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                '\x19\x01',
+                DOMAIN_SEPARATOR,
+                keccak256(
+                    abi.encode(
+                        GASLESS_APPROVAL_TYPEHASH,
+                        params.userAddress,
+                        params.approvalSigR,
+                        params.approvalSigS,
+                        params.approvalSigV,
+                        params.tokenAddress,
+                        params.approvalValue,
+                        params.approvalDeadline,
+                        params.fees,
+                        params.nonce
+                    )
+                )
+            )
+        );
+        require(
+            params.userAddress ==
+                ecrecover(digest, params.sigV, params.sigR, params.sigS),
+            '[APROVE WITHOUT FEES] Invalid signature'
+        );
+        require(
+            params.nonce == approvalNonces[params.userAddress]++,
+            '[APROVE WITHOUT FEES] Invalid nonce'
+        );
+        ERC20Permit token = ERC20Permit(params.tokenAddress);
+        token.permit(
+            params.userAddress,
+            address(this),
+            params.approvalValue,
+            params.approvalDeadline,
+            params.approvalSigV,
+            params.approvalSigR,
+            params.approvalSigS
+        );
+        token.transferFrom(params.userAddress, address(this), params.fees);
+    }
+
     function _verifyDigest(
         bytes32 digest,
         address userAddress,
@@ -221,7 +289,10 @@ contract GaslessV3 is Ownable {
             userAddress == ecrecover(digest, sigV, sigR, sigS),
             '[SWAP WITHOUT FEES] Invalid signature'
         );
-        require(nonce == nonces[userAddress]++, 'Invalid nonce');
+        require(
+            nonce == nonces[userAddress]++,
+            '[SWAP WITHOUT FEES] Invalid nonce'
+        );
     }
 
     function _getDigest(
@@ -233,7 +304,7 @@ contract GaslessV3 is Ownable {
         uint24[] memory fees,
         uint nonce,
         bool isTokenOutNative
-    ) internal returns (bytes32) {
+    ) internal view returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
@@ -241,7 +312,7 @@ contract GaslessV3 is Ownable {
                     DOMAIN_SEPARATOR,
                     keccak256(
                         abi.encode(
-                            META_TRANSACTION_TYPEHASH,
+                            GASLESS_SWAP_TYPEHASH,
                             amountIn,
                             tokenIn,
                             tokenOut,
@@ -259,14 +330,14 @@ contract GaslessV3 is Ownable {
     function _encodePathV3(
         address[] memory _path,
         uint24[] memory _fees
-    ) internal view returns (bytes memory path) {
+    ) internal pure returns (bytes memory path) {
         path = abi.encodePacked(_path[0]);
         for (uint i = 0; i < _fees.length; i++) {
             path = abi.encodePacked(path, _fees[i], _path[i + 1]);
         }
     }
 
-    function getChainId() internal returns (uint256) {
+    function getChainId() internal view returns (uint256) {
         uint256 id;
         assembly {
             id := chainid()

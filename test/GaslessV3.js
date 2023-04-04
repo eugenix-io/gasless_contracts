@@ -3,6 +3,7 @@ const { ethers } = require('hardhat');
 const sigUtil = require('@metamask/eth-sig-util');
 const { config } = require('hardhat');
 const axios = require('axios');
+const { domainType } = require('ethers-eip712');
 
 const getTestCases = () => {
     switch (process.env.TEST_NETWORK) {
@@ -16,23 +17,43 @@ const getTestCases = () => {
 
 const TestCases = getTestCases();
 
-const domainType = [
+//domain types
+const gaslessDomainType = [
     { name: 'name', type: 'string' },
     { name: 'version', type: 'string' },
     { name: 'verifyingContract', type: 'address' },
     { name: 'salt', type: 'bytes32' },
 ];
 
-const swapWithoutFees = [
-    { type: 'uint', name: 'amountIn' },
-    { type: 'address', name: 'tokenIn' },
-    { type: 'address', name: 'tokenOut' },
-    { type: 'address', name: 'userAddress' },
-    { type: 'address[]', name: 'path' },
-    { type: 'uint24[]', name: 'fees' },
-    { type: 'uint', name: 'nonce' },
-    { type: 'bool', name: 'isTokenOutNative' },
-];
+//message types
+const swapWithoutFees = {
+    types: [
+        { type: 'uint', name: 'amountIn' },
+        { type: 'address', name: 'tokenIn' },
+        { type: 'address', name: 'tokenOut' },
+        { type: 'address', name: 'userAddress' },
+        { type: 'address[]', name: 'path' },
+        { type: 'uint24[]', name: 'fees' },
+        { type: 'uint', name: 'nonce' },
+        { type: 'bool', name: 'isTokenOutNative' },
+    ],
+    name: 'SwapWithoutFees',
+};
+
+const approveWithoutFees = {
+    types: [
+        { type: 'address', name: 'userAddress' },
+        { type: 'bytes32', name: 'approvalSigR' },
+        { type: 'bytes32', name: 'approvalSigS' },
+        { type: 'uint8', name: 'approvalSigV' },
+        { type: 'address', name: 'tokenAddress' },
+        { type: 'uint', name: 'approvalValue' },
+        { type: 'uint', name: 'approvalDeadline' },
+        { type: 'uint', name: 'fees' },
+        { type: 'uint', name: 'nonce' },
+    ],
+    name: 'ApproveWithoutFees',
+};
 
 const getSignatureParameters = (signature) => {
     if (!ethers.utils.isHexString(signature)) {
@@ -52,8 +73,8 @@ const getSignatureParameters = (signature) => {
     };
 };
 
-async function getSignature(wallet, mainContract, message) {
-    let domainData = {
+async function getDomainData(mainContract) {
+    return {
         name: await mainContract.name(),
         version: '1',
         verifyingContract: mainContract.address,
@@ -62,19 +83,25 @@ async function getSignature(wallet, mainContract, message) {
             32
         ),
     };
+}
 
-    let nonce = await main.nonces(wallet.address);
-    message.nonce = parseInt(nonce);
-
+async function getSignature({
+    wallet,
+    message,
+    messageType,
+    domainType,
+    domainData,
+}) {
     const dataToSign = {
         types: {
             EIP712Domain: domainType,
-            SwapWithoutFees: swapWithoutFees,
         },
         domain: domainData,
-        primaryType: 'SwapWithoutFees',
+        primaryType: messageType.name,
         message: message,
     };
+
+    dataToSign.types[messageType.name] = messageType.types;
 
     let signature = sigUtil.signTypedData({
         privateKey: Buffer.from(wallet.privateKey.slice(2), 'hex'),
@@ -82,27 +109,22 @@ async function getSignature(wallet, mainContract, message) {
         version: 'V4',
     });
 
-    return { ...getSignatureParameters(signature), nonce };
+    return getSignatureParameters(signature);
 }
 
 const WrappedNative = config.networks.hardhat.wrappedTokenAddress;
+
 let main;
 let owner;
+let relayer;
 describe('Generic Contract Functions', function () {
     before(async () => {
+        //get owner signer
+        owner = getSigner(0);
+        relayer = getSigner(1);
         const Main = await ethers.getContractFactory('GaslessV3');
         main = await Main.deploy(WrappedNative);
         console.log('MAIN ADDRESS FIRST DEPLOYMENT - ', main.address);
-    });
-
-    this.beforeAll(() => {
-        const accounts = config.networks.hardhat.accounts;
-        //get owner signer
-        let wallet = ethers.Wallet.fromMnemonic(
-            accounts.mnemonic,
-            accounts.path + `/${0}`
-        );
-        owner = new ethers.Wallet(wallet.privateKey, ethers.provider);
     });
 
     it('Transfer of native token', async () => {
@@ -128,31 +150,37 @@ describe('Generic Contract Functions', function () {
     });
 
     it('Change gasForSwap not the owner', async () => {
-        const accounts = config.networks.hardhat.accounts;
-        let wallet = ethers.Wallet.fromMnemonic(
-            accounts.mnemonic,
-            accounts.path + `/${1}`
-        );
-        signer = new ethers.Wallet(wallet.privateKey, ethers.provider);
-        await expect(main.connect(signer).setGasForSwap(1)).revertedWith(
+        await expect(main.connect(relayer).setGasForSwap(1)).revertedWith(
             'Ownable: caller is not the owner'
         );
     });
 
-    describe('Swap without fees for all tokens', function () {
+    describe('Iterative test cases', function () {
         before(async () => {
             const Main = await ethers.getContractFactory('GaslessV3');
             main = await Main.deploy(WrappedNative);
             console.log('MAIN ADDRESS SECOND DEPLOYMENT - ', main.address);
         });
 
-        TestCases.forEach((data) => {
-            describeTestForToken(data);
-        });
+        if (TestCases.gaslessSwaps) {
+            TestCases.gaslessSwaps.forEach((data) => {
+                describeTestForGaslessSwaps(data);
+            });
+        } else {
+            console.warn('No gasless swap test found');
+        }
+
+        if (TestCases.gaslessApproval) {
+            TestCases.gaslessApproval.forEach((data) => {
+                describeTestsForGaslessApproval(data);
+            });
+        } else {
+            console.warn('No gasless approval test found');
+        }
     });
 });
 
-function describeTestForToken(data) {
+function describeTestForGaslessSwaps(data) {
     describe(`Swap without fees - ${data.testName}`, function () {
         let tokenAddress = data.fromTokenAddress;
         let token;
@@ -163,51 +191,7 @@ function describeTestForToken(data) {
         });
 
         it('Get token from Uniswap', async () => {
-            let swapRouter = await ethers.getContractAt(
-                'ISwapRouter',
-                await main.SWAP_ROUTER_ADDRESS()
-            );
-
-            let swapParams = {
-                recipient: owner.address,
-                deadline: (await ethers.provider.getBlock()).timestamp + 1000,
-                amountIn: ethers.utils.parseEther('500'),
-                amountOutMinimum: 0,
-            };
-            if (data.acquireTokenPath && data.acquireTokenPath.length > 2) {
-                let types = ['address'];
-                let values = [data.acquireTokenPath[0]];
-                for (let i = 0; i < data.acquireTokenPath.length - 1; i++) {
-                    types.push('uint24');
-                    types.push('address');
-                    values.push(data.acquireTokenFee[i]);
-                    values.push(data.acquireTokenPath[i + 1]);
-                }
-                await swapRouter.exactInput(
-                    {
-                        path: ethers.utils.solidityPack(types, values),
-                        ...swapParams,
-                    },
-                    {
-                        value: ethers.utils.parseEther('500'),
-                    }
-                );
-            } else {
-                await swapRouter.exactInputSingle(
-                    {
-                        tokenIn: WrappedNative,
-                        tokenOut: tokenAddress,
-                        fee: data.nativeFeeTier ? data.nativeFeeTier : 3000,
-                        sqrtPriceLimitX96: 0,
-                        ...swapParams,
-                    },
-                    {
-                        value: ethers.utils.parseEther('500'),
-                    }
-                );
-            }
-            let tokenBalance = await token.balanceOf(owner.address);
-            expect(tokenBalance).greaterThan(0);
+            await getTokenFromUniswap(data, token, tokenAddress);
         });
 
         it('Approve Contract for Token usage', async () => {
@@ -219,12 +203,11 @@ function describeTestForToken(data) {
         });
 
         it('Swap tokens without fees', async () => {
-            let relayerSigner = getRelayerSigner();
-
-            let mainRelayer = await main.connect(relayerSigner);
+            let mainRelayer = await main.connect(relayer);
 
             let toToken = await ethers.getContractAt('ERC20', toTokenAddress);
             let initialTokenBalUser = await toToken.balanceOf(owner.address);
+            console.log('this is initial token: ' + initialTokenBalUser);
             let initialnativeBalUser = await ethers.provider.getBalance(
                 owner.address
             );
@@ -251,6 +234,7 @@ function describeTestForToken(data) {
             );
 
             const isTokenOutnative = toTokenAddress === WrappedNative;
+            let nonce = await main.nonces(owner.address);
             let params = {
                 amountIn: amountIn.toString(), //sign fails for large numbers so we need to convert to string
                 tokenIn: tokenAddress,
@@ -261,9 +245,17 @@ function describeTestForToken(data) {
                 isTokenOutNative: isTokenOutnative,
                 toNativePath: tonativePath.reverse(),
                 toNativeFees: tonativeFees.reverse(),
+                nonce: parseInt(nonce),
             };
 
-            let { r, s, v, nonce } = await getSignature(owner, main, params);
+            let { r, s, v } = await getSignature({
+                wallet: owner,
+                mainContract: main,
+                message: params,
+                domainType: gaslessDomainType,
+                messageType: swapWithoutFees,
+                domainData: await getDomainData(main),
+            });
 
             console.log('THESE ARE THE PARAMS - ', params);
 
@@ -308,11 +300,152 @@ function describeTestForToken(data) {
     });
 }
 
-function getRelayerSigner() {
+function describeTestsForGaslessApproval(data) {
+    describe(`Approve without fees - ${data.testName}`, function () {
+        let tokenAddress = data.tokenAddress;
+
+        this.beforeAll(async () => {
+            token = await ethers.getContractAt('ERC20', tokenAddress, owner);
+        });
+
+        it('Get token from Uniswap', async () => {
+            await getTokenFromUniswap(data, token, tokenAddress);
+        });
+
+        it('Get approval', async () => {
+            let deadline = Math.round(new Date().getTime() / 1000 + 10_000);
+            let value = ethers.utils.parseEther('10000').toString();
+
+            let tokenNonces = await ethers.getContractAt(
+                'ERC20Nonces',
+                tokenAddress
+            );
+            let tokenNonce = parseInt(await tokenNonces.nonces(owner.address));
+            let {
+                r: approvalSigR,
+                s: approvalSigS,
+                v: approvalSigV,
+            } = await getSignature({
+                wallet: owner,
+                message: {
+                    owner: owner.address,
+                    spender: main.address,
+                    value: value,
+                    nonce: tokenNonce,
+                    deadline,
+                },
+                messageType: TestCases.constants.permitType,
+                domainType: TestCases.constants.domainType,
+                domainData: {
+                    name: await token.name(),
+                    version: data.domainVersion || '1',
+                    verifyingContract: tokenAddress,
+                    chainId: config.networks.hardhat.chainId,
+                },
+            });
+            let contractNonce = await main.approvalNonces(owner.address);
+            let fee = data.fee;
+            let params = {
+                userAddress: owner.address,
+                approvalSigR,
+                approvalSigS,
+                approvalSigV,
+                tokenAddress,
+                approvalValue: value,
+                approvalDeadline: deadline,
+                fees: fee,
+                nonce: parseInt(contractNonce),
+            };
+            let {
+                r: sigR,
+                s: sigS,
+                v: sigV,
+            } = await getSignature({
+                wallet: owner,
+                message: params,
+                messageType: approveWithoutFees,
+                domainType: gaslessDomainType,
+                domainData: await getDomainData(main),
+            });
+
+            let initialTokenBalance = await token.balanceOf(main.address);
+            await main.approveWithoutFees({
+                ...params,
+                sigR,
+                sigS,
+                sigV,
+            });
+            let finalTokenBalance = await token.balanceOf(main.address);
+            console.log('initial balance', initialTokenBalance);
+            console.log('final balance', finalTokenBalance);
+            expect(finalTokenBalance - initialTokenBalance).to.equal(fee);
+        });
+    });
+}
+
+async function getTokenFromUniswap(data, token, tokenAddress) {
+    console.log('inside over here!!');
+    let swapRouter = await ethers.getContractAt(
+        'ISwapRouter',
+        await main.SWAP_ROUTER_ADDRESS()
+    );
+
+    let amountIn = ethers.utils.parseEther('1');
+    console.log('this is amount in -', amountIn);
+    let swapParams = {
+        recipient: owner.address,
+        deadline: (await ethers.provider.getBlock()).timestamp + 1000,
+        amountIn: amountIn,
+        amountOutMinimum: 0,
+    };
+
+    if (data.acquireTokenPath && data.acquireTokenPath.length > 2) {
+        let types = ['address'];
+        let values = [data.acquireTokenPath[0]];
+        for (let i = 0; i < data.acquireTokenPath.length - 1; i++) {
+            types.push('uint24');
+            types.push('address');
+            values.push(data.acquireTokenFee[i]);
+            values.push(data.acquireTokenPath[i + 1]);
+        }
+        await swapRouter.exactInput(
+            {
+                path: ethers.utils.solidityPack(types, values),
+                ...swapParams,
+            },
+            {
+                value: amountIn,
+            }
+        );
+    } else {
+        console.log('swapping exact input');
+        await swapRouter.exactInputSingle(
+            {
+                tokenIn: WrappedNative,
+                tokenOut: tokenAddress,
+                fee: data.nativeFeeTier ? data.nativeFeeTier : 3000,
+                sqrtPriceLimitX96: 0,
+                ...swapParams,
+            },
+            {
+                value: amountIn,
+            }
+        );
+    }
+    let tokenBalance = await token.balanceOf(owner.address);
+    console.log(
+        'this is the token balance after acquiring',
+        tokenAddress,
+        tokenBalance
+    );
+    expect(tokenBalance).greaterThan(0);
+}
+
+function getSigner(index) {
     const accounts = config.networks.hardhat.accounts;
     let relayerWallet = ethers.Wallet.fromMnemonic(
         accounts.mnemonic,
-        accounts.path + `/${1}`
+        accounts.path + `/${index}`
     );
     return new ethers.Wallet(relayerWallet.privateKey, ethers.provider);
 }
