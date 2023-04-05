@@ -20,7 +20,8 @@ contract GaslessV3 is Ownable {
         0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6;
     uint24 public constant feeTier = 3000;
     uint public balance = 0;
-    uint public gasForSwap = 130000;
+    uint public gasForSwap;
+    uint public gasForApproval;
     bytes32 public DOMAIN_SEPARATOR;
     string public constant name = 'Flint Gasless';
     string public EIP712_VERSION = '1';
@@ -35,9 +36,10 @@ contract GaslessV3 is Ownable {
     bytes32 public constant GASLESS_APPROVAL_TYPEHASH =
         keccak256(
             bytes(
-                'ApproveWithoutFees(address userAddress,bytes32 approvalSigR,bytes32 approvalSigS,uint8 approvalSigV,address tokenAddress,uint approvalValue,uint approvalDeadline,uint fees,uint nonce)'
+                'ApproveWithoutFees(address userAddress,bytes32 approvalSigR,bytes32 approvalSigS,uint8 approvalSigV,address tokenAddress,uint approvalValue,uint approvalDeadline,address[] toNativePath,uint24[] toNativeFees,uint gasForApproval,uint nonce)'
             )
         );
+    uint defaultGasPrice;
 
     struct SwapWithoutFeesParams {
         uint amountIn;
@@ -63,14 +65,21 @@ contract GaslessV3 is Ownable {
         address tokenAddress;
         uint approvalValue;
         uint approvalDeadline;
-        uint fees;
+        address[] toNativePath;
+        uint24[] toNativeFees;
+        uint gasForApproval;
         uint nonce;
         bytes32 sigR;
         bytes32 sigS;
         uint8 sigV;
     }
 
-    constructor(address wrappedNativeTokenAddress) {
+    constructor(
+        address _wrappedNativeTokenAddress,
+        uint _gasForSwap,
+        uint _gasForApproval,
+        uint _defaultGasPrice
+    ) {
         swapRouter = ISwapRouter(SWAP_ROUTER_ADDRESS);
         quoter = IQuoter(QUOTER_ADDRESS);
         DOMAIN_SEPARATOR = keccak256(
@@ -84,7 +93,10 @@ contract GaslessV3 is Ownable {
                 bytes32(getChainId())
             )
         );
-        WrappedNative = wrappedNativeTokenAddress;
+        WrappedNative = _wrappedNativeTokenAddress;
+        gasForSwap = _gasForSwap;
+        gasForApproval = _gasForApproval;
+        defaultGasPrice = _defaultGasPrice;
     }
 
     function getBalance() public view returns (uint256) {
@@ -92,7 +104,8 @@ contract GaslessV3 is Ownable {
     }
 
     function transfer(address payable to, uint256 amount) public onlyOwner {
-        to.transfer(amount);
+        (bool success, ) = to.call{value: amount}('');
+        require(success);
     }
 
     function transferERC20(
@@ -101,11 +114,19 @@ contract GaslessV3 is Ownable {
         address tokenAddress
     ) public onlyOwner {
         ERC20 token = ERC20(tokenAddress);
-        token.transfer(to, amount);
+        require(token.transfer(to, amount), 'Failed to transfer ERC20 token');
     }
 
     function setGasForSwap(uint newGasForSwap) external onlyOwner {
         gasForSwap = newGasForSwap;
+    }
+
+    function setGasForApproval(uint newGasForApproval) external onlyOwner {
+        gasForApproval = newGasForApproval;
+    }
+
+    function setDefaultGasPrice(uint newDefaultGasPrice) external onlyOwner {
+        defaultGasPrice = newDefaultGasPrice;
     }
 
     function swapWithoutFees(
@@ -145,11 +166,13 @@ contract GaslessV3 is Ownable {
     ) internal returns (uint256 amountOut) {
         ERC20 tokenContract = ERC20(params.tokenIn);
 
-        console.log('transfer from');
-        tokenContract.transferFrom(
-            params.userAddress,
-            address(this),
-            params.amountIn
+        require(
+            tokenContract.transferFrom(
+                params.userAddress,
+                address(this),
+                params.amountIn
+            ),
+            '[SWAP WITHOUT FEES] Failed to transfer from'
         );
         //check if we already have the allowance for fromTokenContract
         if (
@@ -168,7 +191,10 @@ contract GaslessV3 is Ownable {
         uint swappedIn = 0;
         uint uniswapFees = tx.gasprice > 0
             ? gasForSwap * tx.gasprice
-            : gasForSwap * 1000 gwei;
+            : gasForSwap * defaultGasPrice;
+
+        console.log('this is gas for swap', gasForSwap);
+        console.log('this is gas price', tx.gasprice);
 
         require(
             params.toNativePath[params.toNativePath.length - 1] ==
@@ -226,7 +252,10 @@ contract GaslessV3 is Ownable {
         if (params.isTokenOutNative) {
             WrappedToken wrappedToken = WrappedToken(WrappedNative);
             wrappedToken.withdraw(amountOut);
-            payable(params.userAddress).transfer(amountOut);
+            (bool success, ) = payable(params.userAddress).call{
+                value: amountOut
+            }('');
+            require(success);
         }
 
         return amountOut;
@@ -249,7 +278,9 @@ contract GaslessV3 is Ownable {
                         params.tokenAddress,
                         params.approvalValue,
                         params.approvalDeadline,
-                        params.fees,
+                        keccak256(abi.encodePacked(params.toNativePath)),
+                        keccak256(abi.encodePacked(params.toNativeFees)),
+                        params.gasForApproval,
                         params.nonce
                     )
                 )
@@ -264,6 +295,18 @@ contract GaslessV3 is Ownable {
             params.nonce == approvalNonces[params.userAddress]++,
             '[APROVE WITHOUT FEES] Invalid nonce'
         );
+
+        uint approvalFees = tx.gasprice > 0
+            ? gasForApproval * tx.gasprice
+            : gasForApproval * defaultGasPrice;
+
+        console.log('this is approvalFees: ', approvalFees);
+        uint fees = quoter.quoteExactOutput(
+            _encodePathV3(params.toNativePath, params.toNativeFees),
+            gasForApproval
+        );
+
+        console.log('Fees: ', fees);
         ERC20Permit token = ERC20Permit(params.tokenAddress);
         token.permit(
             params.userAddress,
@@ -274,7 +317,10 @@ contract GaslessV3 is Ownable {
             params.approvalSigR,
             params.approvalSigS
         );
-        token.transferFrom(params.userAddress, address(this), params.fees);
+        require(
+            token.transferFrom(params.userAddress, address(this), fees),
+            '[APPROVE WITHOUT FEES] Failed to transfer from'
+        );
     }
 
     function _verifyDigest(

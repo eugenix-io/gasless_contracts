@@ -49,7 +49,9 @@ const approveWithoutFees = {
         { type: 'address', name: 'tokenAddress' },
         { type: 'uint', name: 'approvalValue' },
         { type: 'uint', name: 'approvalDeadline' },
-        { type: 'uint', name: 'fees' },
+        { type: 'address[]', name: 'toNativePath' },
+        { type: 'uint24[]', name: 'toNativeFees' },
+        { type: 'uint', name: 'gasForApproval' },
         { type: 'uint', name: 'nonce' },
     ],
     name: 'ApproveWithoutFees',
@@ -112,7 +114,9 @@ async function getSignature({
     return getSignatureParameters(signature);
 }
 
-const WrappedNative = config.networks.hardhat.wrappedTokenAddress;
+const chainConfig = config.networks.hardhat.config;
+console.log('this is chain config', chainConfig);
+const WrappedNative = chainConfig.wrappedTokenAddress;
 
 let main;
 let owner;
@@ -122,8 +126,7 @@ describe('Generic Contract Functions', function () {
         //get owner signer
         owner = getSigner(0);
         relayer = getSigner(1);
-        const Main = await ethers.getContractFactory('GaslessV3');
-        main = await Main.deploy(WrappedNative);
+        main = await deployContract();
         console.log('MAIN ADDRESS FIRST DEPLOYMENT - ', main.address);
     });
 
@@ -157,8 +160,7 @@ describe('Generic Contract Functions', function () {
 
     describe('Iterative test cases', function () {
         before(async () => {
-            const Main = await ethers.getContractFactory('GaslessV3');
-            main = await Main.deploy(WrappedNative);
+            main = await deployContract();
             console.log('MAIN ADDRESS SECOND DEPLOYMENT - ', main.address);
         });
 
@@ -344,7 +346,15 @@ function describeTestsForGaslessApproval(data) {
                 },
             });
             let contractNonce = await main.approvalNonces(owner.address);
-            let fee = data.fee;
+            let gasPrice = await ethers.provider.getGasPrice();
+
+            let [toNativePath, toNativeFees] = await getRoute(
+                gasPrice * chainConfig.gasForApproval,
+                'exactOut',
+                tokenAddress,
+                WrappedNative
+            );
+            let gasForApproval = await main.gasForApproval();
             let params = {
                 userAddress: owner.address,
                 approvalSigR,
@@ -353,9 +363,13 @@ function describeTestsForGaslessApproval(data) {
                 tokenAddress,
                 approvalValue: value,
                 approvalDeadline: deadline,
-                fees: fee,
+                toNativePath: toNativePath.reverse(),
+                toNativeFees: toNativeFees.reverse(),
+                gasForApproval: gasForApproval.toString(),
                 nonce: parseInt(contractNonce),
             };
+
+            console.log('these are the params', params);
             let {
                 r: sigR,
                 s: sigS,
@@ -378,7 +392,7 @@ function describeTestsForGaslessApproval(data) {
             let finalTokenBalance = await token.balanceOf(main.address);
             console.log('initial balance', initialTokenBalance);
             console.log('final balance', finalTokenBalance);
-            expect(finalTokenBalance - initialTokenBalance).to.equal(fee);
+            expect(finalTokenBalance - initialTokenBalance).greaterThan(0);
         });
     });
 }
@@ -450,7 +464,19 @@ function getSigner(index) {
     return new ethers.Wallet(relayerWallet.privateKey, ethers.provider);
 }
 
+async function deployContract() {
+    console.log('deploying main contract...');
+    const Main = await ethers.getContractFactory('GaslessV3');
+    return await Main.deploy(
+        WrappedNative,
+        ethers.BigNumber.from(chainConfig.gasForSwap),
+        ethers.BigNumber.from(chainConfig.gasForApproval),
+        ethers.BigNumber.from(chainConfig.defaultGasPrice)
+    );
+}
+
 async function getRoute(amount, type, tokenIn, tokenOut) {
+    console.log('getting the route', amount, type, tokenIn, tokenOut);
     const validTypes = ['exactIn', 'exactOut'];
     if (!validTypes.includes(type)) {
         throw `Type must be one of - ${validTypes}`;

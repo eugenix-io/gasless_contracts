@@ -9,7 +9,10 @@ const hre = require('hardhat');
 async function main() {
     const ContractFactory = await hre.ethers.getContractFactory('GaslessV3');
     const contract = await ContractFactory.deploy(
-        hre.network.config.wrappedTokenAddress
+        hre.network.config.config.wrappedTokenAddress,
+        hre.network.config.config.gasForSwap,
+        hre.network.config.config.gasForApproval,
+        hre.network.config.config.defaultGasPrice
     );
 
     await contract.deployed();

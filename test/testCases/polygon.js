@@ -112,7 +112,7 @@ module.exports = {
             fees: [3000, 500],
         },
         {
-            testName: 'VOXEL -> USDT (Multihop to get WMAtIC)',
+            testName: 'VOXEL -> USDT (Multihop to get WMATIC)',
             fromTokenAddress: '0xd0258a3fD00f38aa8090dfee343f10A9D4d30D3F',
             toTokenAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
             decimals: 18,
