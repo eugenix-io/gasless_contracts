@@ -36,7 +36,7 @@ contract GaslessV3 is Ownable {
     bytes32 public constant GASLESS_APPROVAL_TYPEHASH =
         keccak256(
             bytes(
-                'ApproveWithoutFees(address userAddress,bytes32 approvalSigR,bytes32 approvalSigS,uint8 approvalSigV,address tokenAddress,uint approvalValue,uint approvalDeadline,address[] toNativePath,uint24[] toNativeFees,uint gasForApproval,uint nonce)'
+                'ApproveWithoutFees(address userAddress,address tokenAddress,uint approvalValue,uint approvalDeadline,address[] toNativePath,uint24[] toNativeFees,uint gasForApproval,uint nonce)'
             )
         );
     uint defaultGasPrice;
@@ -272,9 +272,6 @@ contract GaslessV3 is Ownable {
                     abi.encode(
                         GASLESS_APPROVAL_TYPEHASH,
                         params.userAddress,
-                        params.approvalSigR,
-                        params.approvalSigS,
-                        params.approvalSigV,
                         params.tokenAddress,
                         params.approvalValue,
                         params.approvalDeadline,
@@ -294,6 +291,12 @@ contract GaslessV3 is Ownable {
         require(
             params.nonce == approvalNonces[params.userAddress]++,
             '[APROVE WITHOUT FEES] Invalid nonce'
+        );
+
+        require(
+            params.tokenAddress ==
+                params.toNativePath[params.toNativePath.length - 1],
+            'Path must be for the token address'
         );
 
         uint approvalFees = tx.gasprice > 0

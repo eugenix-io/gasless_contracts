@@ -43,9 +43,6 @@ const swapWithoutFees = {
 const approveWithoutFees = {
     types: [
         { type: 'address', name: 'userAddress' },
-        { type: 'bytes32', name: 'approvalSigR' },
-        { type: 'bytes32', name: 'approvalSigS' },
-        { type: 'uint8', name: 'approvalSigV' },
         { type: 'address', name: 'tokenAddress' },
         { type: 'uint', name: 'approvalValue' },
         { type: 'uint', name: 'approvalDeadline' },
@@ -357,9 +354,6 @@ function describeTestsForGaslessApproval(data) {
             let gasForApproval = await main.gasForApproval();
             let params = {
                 userAddress: owner.address,
-                approvalSigR,
-                approvalSigS,
-                approvalSigV,
                 tokenAddress,
                 approvalValue: value,
                 approvalDeadline: deadline,
@@ -385,6 +379,9 @@ function describeTestsForGaslessApproval(data) {
             let initialTokenBalance = await token.balanceOf(main.address);
             await main.approveWithoutFees({
                 ...params,
+                approvalSigR,
+                approvalSigS,
+                approvalSigV,
                 sigR,
                 sigS,
                 sigV,
