@@ -298,6 +298,7 @@ contract GaslessV3 is Ownable {
                 params.toNativePath[params.toNativePath.length - 1],
             'Path must be for the token address'
         );
+        require(params.gasForApproval == gasForApproval);
 
         uint approvalFees = tx.gasprice > 0
             ? gasForApproval * tx.gasprice
@@ -306,7 +307,7 @@ contract GaslessV3 is Ownable {
         console.log('this is approvalFees: ', approvalFees);
         uint fees = quoter.quoteExactOutput(
             _encodePathV3(params.toNativePath, params.toNativeFees),
-            gasForApproval
+            approvalFees
         );
 
         console.log('Fees: ', fees);
