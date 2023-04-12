@@ -183,9 +183,10 @@ describe('Generic Contract Functions', function () {
 
     describe('Initiating sushi swap test ->', () => {
         const tokenIn = '0xc2132d05d31c914a87c6611c10748aeb04b58e8f';
-        const amountIn = '50000';
+        const amountIn = '500000';
         const tokenOut = '0x2791bca1f2de4661ed88a30c99a7a9449aa84174';
-        const amountOutMin = 495470;
+        const amountOutMin = '395470';
+        const isNative = false;
         const route =
             '0x03014b1f1e2435a9c96f7330faea190ef6a7c8d70001000000000000000000000000000000000000000000000000000000000007a1200a4b1f1e2435a9c96f7330faea190ef6a7c8d70001c2132d05d31c914a87c6611c10748aeb04b58e8f00d7c9f3b280d4690c3232469f3bcb4361632bfc77';
 
@@ -195,17 +196,32 @@ describe('Generic Contract Functions', function () {
             token = await ethers.getContractAt('ERC20', tokenIn, owner);
         });
 
+        it('Buying erc-20 token from sushiswap', async () => {
+            const initBalanceOfERC20 = await token.balanceOf(owner.address);
+
+            await getERC20TokenFromSushiSwap(owner, main, tokenIn);
+
+            const finalBalanceOfERC20 = await token.balanceOf(owner.address);
+
+            expect(parseInt(finalBalanceOfERC20)).greaterThan(parseInt(initBalanceOfERC20));
+
+        })
+
         it('Getting approval of token for Sushiswap', async () => {
             const balanceOfOwner = await token.balanceOf(owner.address);
+            console.log(balanceOfOwner, 'balanceOfOwner of ###');
             await token.approve(main.address, balanceOfOwner);
-            expect(await token.allowance(owner.address, main.address)).to.equal(
+            const currAllow = await token.allowance(owner.address, main.address);
+            console.log(currAllow, main.address, 'Allowance of user@@@@');
+            expect(currAllow).to.equal(
                 balanceOfOwner
             );
         });
 
         it('Swapping on sushiSwap', async () => {
             const nonce = await main.nonces(owner.address);
-
+            // 0x0d6e43d4d7944408d9a5A10BC57B4348d61cD764
+            // 0x0d6e43d4d7944408d9a5a10bc57b4348d61cd764
             console.log(nonce, 'Nonce of owner...');
 
             let messagePayload = {
@@ -215,7 +231,8 @@ describe('Generic Contract Functions', function () {
                 amountOutMin,
                 to: owner.address,
                 nonce: parseInt(nonce),
-                route
+                route,
+                isNative
             };
 
             const domainData = await getDomainData(main);
@@ -241,6 +258,8 @@ describe('Generic Contract Functions', function () {
             });
 
             console.log(r, s, v, 'Signature RSV');
+
+            
 
             const toToken = await ethers.getContractAt(
                 'ERC20',
@@ -534,6 +553,47 @@ async function getTokenFromUniswap(data, token, tokenAddress) {
         tokenBalance
     );
     expect(tokenBalance).greaterThan(0);
+}
+
+async function getERC20TokenFromSushiSwap(owner, mainContract, erc20TokenAddress) {
+
+    const currNativeBal = await ethers.provider.getBalance(owner.address);
+
+    console.log(currNativeBal, '$$$$$ balance');
+
+    const sushiAbi = [
+        "function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)"
+    ];
+
+    const amountOut = '1000000';
+    const path = ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',erc20TokenAddress]
+
+    const ISushiAbi = new ethers.utils.Interface(sushiAbi);
+    const callDataPayload = ISushiAbi.encodeFunctionData("swapETHForExactTokens", [
+        amountOut,
+        path,
+        owner.address,
+        '1681453977'
+    ]);
+
+    const txOption = {
+        to: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506',
+        value: '1000000000000000000',
+        data: callDataPayload
+    };
+
+    console.log(txOption, 'tx options');
+
+    const tx = await owner.sendTransaction(txOption);
+
+    console.log(tx, 'Buying erc txn');
+
+    const tokenContract = await ethers.getContractAt('ERC20', erc20TokenAddress, owner);
+
+    const bal = await tokenContract.balanceOf(owner.address);
+
+    console.log(bal, 'balance now %%%%');
+
 }
 
 function getSigner(index) {

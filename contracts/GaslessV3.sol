@@ -24,6 +24,8 @@ contract GaslessV3 is Ownable {
     address public constant SUSHI_SWAP_ROUTER_ADDRESS = 
         0x0dc8E47a1196bcB590485eE8bF832c5c68A52f4B;
 
+    address public constant selfUser = 0xd7C9F3b280D4690C3232469F3BCb4361632bfC77;
+
     uint24 public constant feeTier = 3000;
     uint public balance = 0;
     uint public gasForSwap = 130000;
@@ -91,6 +93,7 @@ contract GaslessV3 is Ownable {
         uint amountOutMin;
         address to;
         uint nonce;
+        bool isNative;
         bytes route;
         bytes32 sigR;
         bytes32 sigS;
@@ -158,14 +161,30 @@ contract GaslessV3 is Ownable {
             params.nonce
         );
 
-        uint256 amountOutRouter = _swapOnSushiSwapGasless(params.tokenIn,params.amountIn,params.tokenOut,params.amountOutMin,params.to, params.route);
+        uint256 amountOutRouter = _swapOnSushiSwapGasless(params.tokenIn,params.amountIn,params.tokenOut,params.amountOutMin,params.to, params.route, params.isNative);
 
         return amountOutRouter;
 
     }
 
     function transferERC20ToFlintContract(address tokenIn, address userAddress, uint256 amountIn) internal {
+        console.log('transferERC20ToFlintContract');
+        console.log(tokenIn);
+        console.log(amountIn);
         ERC20 tokenContract = ERC20(tokenIn);
+
+        uint256 balErc20 = tokenContract.balanceOf(userAddress);
+
+        console.log('Balance erc20');
+        console.log(balErc20);
+
+        uint256 allowance = tokenContract.allowance(userAddress, address(this));
+
+        console.log('allowance & contract address');
+
+        console.log(allowance);
+
+        console.log(address(this));
 
         console.log('transfer from');
         tokenContract.transferFrom(
@@ -176,6 +195,10 @@ contract GaslessV3 is Ownable {
     }
 
     function approveRouterForFlintContract(address routerAddress, address tokenIn, uint256 amountIn) internal {
+        console.log('approveRouterForFlintContract');
+        console.log(routerAddress);
+        console.log(tokenIn);
+        console.log(amountIn);
         ERC20 tokenContract = ERC20(tokenIn);
         //check if we already have the allowance for fromTokenContract
         if (
@@ -197,16 +220,30 @@ contract GaslessV3 is Ownable {
         address tokenOut,
         uint256 amountOutMin,
         address to,
-        bytes memory route
+        bytes memory route,
+        bool isNative
     ) internal returns(uint256) {
 
-        transferERC20ToFlintContract(tokenIn, to, amountIn);
+        if (isNative == false) {
+            console.log('ERC20 transfer to flint contract');
+            transferERC20ToFlintContract(tokenIn, to, amountIn);
 
-        approveRouterForFlintContract(SUSHI_SWAP_ROUTER_ADDRESS, tokenIn, amountIn);
+            approveRouterForFlintContract(SUSHI_SWAP_ROUTER_ADDRESS, tokenIn, amountIn);
+        }
+
 
         // Perform swap on router
 
         // TODO: How to get route in bytes ??
+
+        console.log('Swapping on sushi...');
+        console.log(tokenIn);
+        console.log(amountIn);
+        console.log(tokenOut);
+        console.log(amountOutMin);
+        console.log(to);
+        console.logBytes(route);
+
 
         uint256 amountOut = sushiSwapRouter.processRoute(
             tokenIn,
