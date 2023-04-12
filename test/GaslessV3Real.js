@@ -25,6 +25,21 @@ const realTxn = [
     },
 ];
 
+const sushiSwapTxn = [
+    {
+        tokenIn: '0xc2132d05d31c914a87c6611c10748aeb04b58e8f',
+        amountIn: '500000',
+        tokenOut: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
+        amountOutMin: '495470',
+        to: '0xd7c9f3b280d4690c3232469f3bcb4361632bfc77',
+        route: '0x03014b1f1e2435a9c96f7330faea190ef6a7c8d70001000000000000000000000000000000000000000000000000000000000007a1200a4b1f1e2435a9c96f7330faea190ef6a7c8d70001c2132d05d31c914a87c6611c10748aeb04b58e8f00d7c9f3b280d4690c3232469f3bcb4361632bfc77',
+        sigR: '',
+        sigS: '',
+        sigV: '',
+        nonce: 0
+    }
+]
+
 let main;
 
 describe('Generic Contract Functions', function () {

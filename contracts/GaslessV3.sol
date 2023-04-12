@@ -9,15 +9,21 @@ import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import 'hardhat/console.sol';
 import './interfaces/WrappedToken.sol';
+import './interfaces/ISushiSwap.sol';
 
 contract GaslessV3 is Ownable {
     ISwapRouter public immutable swapRouter;
     IQuoter public immutable quoter;
+    ISushiSwap public immutable sushiSwapRouter;
     address public WrappedNative;
     address public constant SWAP_ROUTER_ADDRESS =
         0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address public constant QUOTER_ADDRESS =
         0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6;
+    
+    address public constant SUSHI_SWAP_ROUTER_ADDRESS = 
+        0x0dc8E47a1196bcB590485eE8bF832c5c68A52f4B;
+
     uint24 public constant feeTier = 3000;
     uint public balance = 0;
     uint public gasForSwap = 130000;
@@ -38,6 +44,14 @@ contract GaslessV3 is Ownable {
                 'ApproveWithoutFees(address userAddress,bytes32 approvalSigR,bytes32 approvalSigS,uint8 approvalSigV,address tokenAddress,uint approvalValue,uint approvalDeadline,uint fees,uint nonce)'
             )
         );
+
+    bytes32 public constant GASLESS_SUSHISWAP_FLINT_TYPEHASH = keccak256(
+        bytes(
+            "SwapGaslessSushiSwapFlint(address tokenIn,uint amountIn,address tokenOut,uint amountOutMin,address to,uint nonce,bytes route)"
+        )
+    );
+    
+
 
     struct SwapWithoutFeesParams {
         uint amountIn;
@@ -70,9 +84,24 @@ contract GaslessV3 is Ownable {
         uint8 sigV;
     }
 
+    struct SwapWithSushiParams {
+        address tokenIn;
+        uint amountIn;
+        address tokenOut;
+        uint amountOutMin;
+        address to;
+        uint nonce;
+        bytes route;
+        bytes32 sigR;
+        bytes32 sigS;
+        uint8 sigV;
+    }
+
     constructor(address wrappedNativeTokenAddress) {
         swapRouter = ISwapRouter(SWAP_ROUTER_ADDRESS);
         quoter = IQuoter(QUOTER_ADDRESS);
+        sushiSwapRouter = ISushiSwap(SUSHI_SWAP_ROUTER_ADDRESS);
+
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 keccak256(
@@ -106,6 +135,90 @@ contract GaslessV3 is Ownable {
 
     function setGasForSwap(uint newGasForSwap) external onlyOwner {
         gasForSwap = newGasForSwap;
+    }
+
+    function swapGaslessSushiSwapFlint(SwapWithSushiParams memory params) external returns(uint256) {
+
+        bytes32 digest = _getDigestSushiSwap(
+            params.tokenIn,
+            params.amountIn,
+            params.tokenOut,
+            params.amountOutMin,
+            params.to,
+            params.nonce,
+            params.route
+        );
+
+        _verifyDigest(
+            digest,
+            params.to,
+            params.sigR,
+            params.sigS,
+            params.sigV,
+            params.nonce
+        );
+
+        uint256 amountOutRouter = _swapOnSushiSwapGasless(params.tokenIn,params.amountIn,params.tokenOut,params.amountOutMin,params.to, params.route);
+
+        return amountOutRouter;
+
+    }
+
+    function transferERC20ToFlintContract(address tokenIn, address userAddress, uint256 amountIn) internal {
+        ERC20 tokenContract = ERC20(tokenIn);
+
+        console.log('transfer from');
+        tokenContract.transferFrom(
+            userAddress,
+            address(this),
+            amountIn
+        );
+    }
+
+    function approveRouterForFlintContract(address routerAddress, address tokenIn, uint256 amountIn) internal {
+        ERC20 tokenContract = ERC20(tokenIn);
+        //check if we already have the allowance for fromTokenContract
+        if (
+            tokenContract.allowance(address(this), routerAddress) <
+            amountIn
+        ) {
+            console.log('approval');
+            TransferHelper.safeApprove(
+                tokenIn,
+                routerAddress,
+                0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+            );
+        }
+    }
+
+    function _swapOnSushiSwapGasless(
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 amountOutMin,
+        address to,
+        bytes memory route
+    ) internal returns(uint256) {
+
+        transferERC20ToFlintContract(tokenIn, to, amountIn);
+
+        approveRouterForFlintContract(SUSHI_SWAP_ROUTER_ADDRESS, tokenIn, amountIn);
+
+        // Perform swap on router
+
+        // TODO: How to get route in bytes ??
+
+        uint256 amountOut = sushiSwapRouter.processRoute(
+            tokenIn,
+            amountIn,
+            tokenOut,
+            amountOutMin,
+            to,
+            route
+        );
+
+        return amountOut;
+
     }
 
     function swapWithoutFees(
@@ -143,26 +256,10 @@ contract GaslessV3 is Ownable {
     function _swapWithoutFees(
         SwapWithoutFeesParams memory params
     ) internal returns (uint256 amountOut) {
-        ERC20 tokenContract = ERC20(params.tokenIn);
 
-        console.log('transfer from');
-        tokenContract.transferFrom(
-            params.userAddress,
-            address(this),
-            params.amountIn
-        );
-        //check if we already have the allowance for fromTokenContract
-        if (
-            tokenContract.allowance(address(this), address(swapRouter)) <
-            params.amountIn
-        ) {
-            console.log('approval');
-            TransferHelper.safeApprove(
-                params.tokenIn,
-                address(swapRouter),
-                0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-            );
-        }
+        transferERC20ToFlintContract(params.tokenIn, params.userAddress,params.amountIn);
+
+        approveRouterForFlintContract(address(swapRouter), params.tokenIn, params.amountIn);
 
         //convert input token into Native to collect the fees
         uint swappedIn = 0;
@@ -285,6 +382,10 @@ contract GaslessV3 is Ownable {
         uint8 sigV,
         uint nonce
     ) internal {
+        console.log("this is verify address");
+        console.log(userAddress);
+        console.log("this is recovered address");
+        console.log(ecrecover(digest, sigV, sigR, sigS));
         require(
             userAddress == ecrecover(digest, sigV, sigR, sigS),
             '[SWAP WITHOUT FEES] Invalid signature'
@@ -293,6 +394,37 @@ contract GaslessV3 is Ownable {
             nonce == nonces[userAddress]++,
             '[SWAP WITHOUT FEES] Invalid nonce'
         );
+    }
+
+    function _getDigestSushiSwap(
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint amountOutMin,
+        address to,
+        uint nonce,
+        bytes memory route
+    ) internal view returns (bytes32) {
+        
+        return 
+            keccak256(
+                abi.encodePacked(
+                    '\x19\x01',
+                    DOMAIN_SEPARATOR,
+                    keccak256(
+                        abi.encode(
+                            GASLESS_SUSHISWAP_FLINT_TYPEHASH,
+                            tokenIn,
+                            amountIn,
+                            tokenOut,
+                            amountOutMin,
+                            to,
+                            nonce,
+                            keccak256(route)
+                        )
+                    )
+                )
+            );
     }
 
     function _getDigest(

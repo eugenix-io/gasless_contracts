@@ -7,14 +7,25 @@
 const hre = require('hardhat');
 
 async function main() {
-    const ContractFactory = await hre.ethers.getContractFactory('GaslessV3');
-    const contract = await ContractFactory.deploy(
-        hre.network.config.wrappedTokenAddress
-    );
+    try {
+        console.log('1111');
+        const ContractFactory = await hre.ethers.getContractFactory(
+            'GaslessV3'
+        );
+        console.log('2222');
+        const contract = await ContractFactory.deploy(
+            hre.network.config.wrappedTokenAddress
+        );
+        console.log('3333');
 
-    await contract.deployed();
+        await contract.deployed();
 
-    console.log(`Deployed to ${contract.address}`);
+        console.log('4444');
+
+        console.log(`Deployed to ${contract.address}`);
+    } catch (error) {
+        console.log(error, 'Error in deployment');
+    }
 }
 
 // We recommend this pattern to be able to use async/await everywhere

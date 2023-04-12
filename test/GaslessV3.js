@@ -103,6 +103,8 @@ async function getSignature({
 
     dataToSign.types[messageType.name] = messageType.types;
 
+    console.log('data to sign', JSON.stringify(dataToSign));
+
     let signature = sigUtil.signTypedData({
         privateKey: Buffer.from(wallet.privateKey.slice(2), 'hex'),
         data: dataToSign,
@@ -162,21 +164,114 @@ describe('Generic Contract Functions', function () {
             console.log('MAIN ADDRESS SECOND DEPLOYMENT - ', main.address);
         });
 
-        if (TestCases.gaslessSwaps) {
-            TestCases.gaslessSwaps.forEach((data) => {
-                describeTestForGaslessSwaps(data);
-            });
-        } else {
-            console.warn('No gasless swap test found');
-        }
+        // if (TestCases.gaslessSwaps) {
+        //     TestCases.gaslessSwaps.forEach((data) => {
+        //         describeTestForGaslessSwaps(data);
+        //     });
+        // } else {
+        //     console.warn('No gasless swap test found');
+        // }
 
-        if (TestCases.gaslessApproval) {
-            TestCases.gaslessApproval.forEach((data) => {
-                describeTestsForGaslessApproval(data);
+        // if (TestCases.gaslessApproval) {
+        //     TestCases.gaslessApproval.forEach((data) => {
+        //         describeTestsForGaslessApproval(data);
+        //     });
+        // } else {
+        //     console.warn('No gasless approval test found');
+        // }
+    });
+
+    describe('Initiating sushi swap test ->', () => {
+        const tokenIn = '0xc2132d05d31c914a87c6611c10748aeb04b58e8f';
+        const amountIn = '50000';
+        const tokenOut = '0x2791bca1f2de4661ed88a30c99a7a9449aa84174';
+        const amountOutMin = 495470;
+        const route =
+            '0x03014b1f1e2435a9c96f7330faea190ef6a7c8d70001000000000000000000000000000000000000000000000000000000000007a1200a4b1f1e2435a9c96f7330faea190ef6a7c8d70001c2132d05d31c914a87c6611c10748aeb04b58e8f00d7c9f3b280d4690c3232469f3bcb4361632bfc77';
+
+        let token;
+
+        this.beforeAll('Get the token', async () => {
+            token = await ethers.getContractAt('ERC20', tokenIn, owner);
+        });
+
+        it('Getting approval of token for Sushiswap', async () => {
+            const balanceOfOwner = await token.balanceOf(owner.address);
+            await token.approve(main.address, balanceOfOwner);
+            expect(await token.allowance(owner.address, main.address)).to.equal(
+                balanceOfOwner
+            );
+        });
+
+        it('Swapping on sushiSwap', async () => {
+            const nonce = await main.nonces(owner.address);
+
+            console.log(nonce, 'Nonce of owner...');
+
+            let messagePayload = {
+                tokenIn,
+                amountIn,
+                tokenOut,
+                amountOutMin,
+                to: owner.address,
+                nonce: parseInt(nonce),
+                route
+            };
+
+            const domainData = await getDomainData(main);
+            console.log(domainData, 'Domain data sushi swap');
+
+            const { r, s, v } = await getSignature({
+                wallet: owner,
+                message: messagePayload,
+                messageType: {
+                    types: [
+                        { type: 'address', name: 'tokenIn' },
+                        { type: 'uint', name: 'amountIn' },
+                        { type: 'address', name: 'tokenOut' },
+                        { type: 'uint', name: 'amountOutMin' },
+                        { type: 'address', name: 'to' },
+                        { type: 'uint', name: 'nonce' },
+                        { type: 'bytes', name: 'route'}
+                    ],
+                    name: 'SwapGaslessSushiSwapFlint',
+                },
+                domainType: gaslessDomainType,
+                domainData: domainData,
             });
-        } else {
-            console.warn('No gasless approval test found');
-        }
+
+            console.log(r, s, v, 'Signature RSV');
+
+            const toToken = await ethers.getContractAt(
+                'ERC20',
+                tokenOut,
+                owner
+            );
+            const initialToTokenBal = await toToken.balanceOf(owner.address);
+
+            console.log(initialToTokenBal, 'Token out balance for owner...');
+
+            const payload = {
+                ...messagePayload,
+                sigR: r,
+                sigS: s,
+                sigV: v,
+            };
+
+            console.log(payload, 'Payload for tx...');
+
+            console.log(main.address, '###### contract address###');
+
+            const tx = await main.swapGaslessSushiSwapFlint(payload);
+
+            let txWait = await tx.wait();
+
+            console.log(txWait, 'Swap tx...');
+
+            expect(await toToken.balanceOf(owner.address)).greaterThan(
+                initialToTokenBal
+            );
+        });
     });
 });
 

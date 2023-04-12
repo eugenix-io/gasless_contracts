@@ -25,13 +25,9 @@ module.exports = {
         //         enabled: true,
         //     },
         // },
-        localhost: {
-            url: 'http://localhost:8545/'
-        },
-        'polygon-mainnet': {
-            url: 'https://polygon-mainnet.g.alchemy.com/v2/eI-tHTF7FqIhl_kQS4oMnqeA6nyZMSmc',
-            accounts: [process.env.NEW_PRIVATE_KEY]
-        }
+        // localhost: {
+        //     url: 'http://localhost:8545/'
+        // },
     },
     etherscan: {
         apiKey: '4TZ25RQ9DT734YTVPXGQJQSY4PQEK117TF'
