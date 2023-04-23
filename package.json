@@ -8,8 +8,11 @@
         "test:arbitrum": "TEST_NETWORK=arbitrum npx hardhat --config ./hardhat.config.arbitrum.js test ./test/GaslessV3.js --bail",
         "deploy:polygon": "npx hardhat run scripts/deploy.js --config ./hardhat.config.polygon.js --network polygon_mainnet",
         "deploy:arbitrum": "npx hardhat run scripts/deploy.js --config ./hardhat.config.arbitrum.js --network arbitrum_mainnet",
+        "deployProxy:mumbai": "npx hardhat run scripts/deployProxy.js --config ./hardhat.config.polygon.js --network polygon_mumbai",
         "verify:polygon": "npx hardhat verify --constructor-args config/arguments.js --config hardhat.config.polygon.js --network polygon_mainnet",
-        "verify:arbitrum": "npx hardhat verify --constructor-args config/arguments.js --config hardhat.config.arbitrum.js --network arbitrum_mainnet"
+        "verify:arbitrum": "npx hardhat verify --constructor-args config/arguments.js --config hardhat.config.arbitrum.js --network arbitrum_mainnet",
+        "verifyProxy:mumbai": "npx hardhat verify --config hardhat.config.polygon.js --network polygon_mumbai",
+        "upgradeProxy:mumbai": "npx hardhat run scripts/upgradeProxy.js --config ./hardhat.config.polygon.js --network polygon_mumbai"
     },
     "keywords": [],
     "author": "",
@@ -22,6 +25,8 @@
     "dependencies": {
         "@metamask/eth-sig-util": "^5.0.2",
         "@openzeppelin/contracts": "^4.8.1",
+        "@openzeppelin/contracts-upgradeable": "^4.8.3",
+        "@openzeppelin/hardhat-upgrades": "^1.22.1",
         "@uniswap/sdk-core": "^3.2.1",
         "@uniswap/smart-order-router": "^3.6.0",
         "@uniswap/v2-core": "^1.0.1",

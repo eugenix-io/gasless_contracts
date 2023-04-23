@@ -1,0 +1,301 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0xCe0751076dABf3A83e20F5cB3aB998d42bE3F4ef",
+    "txHash": "0xc0636967bb570884d9f005d8099977e256738d2189456fac2d6cb7513a6eaa8e"
+  },
+  "proxies": [
+    {
+      "address": "0x38309E55886E3cFC60376085f60E2B7370484dB0",
+      "txHash": "0xda14997b06eec36e8fdeded4f91a3323c82043315d087f78538ea4bbe23bcbcd",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xF93Fe6b50DB5C5DfCee1513c7F96b0bea5b77ea3",
+      "txHash": "0x39bad3a31b829fc5240efb31cb41a712440169973557e720037a1810c7e5165d",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "70c538ac4cdcb903b3268a614b009e8adff1bd461a3199459120cb97babbb7ee": {
+      "address": "0x915a86E3a78c912dca7b9B88F61F818f71Ad3730",
+      "txHash": "0x3dbb3e4607b7f61eb800b88adaa71d82e089cdf3c271df1660efeb13c7a29b6f",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "WrappedNative",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:19"
+          },
+          {
+            "label": "gasForSwap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_uint256",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:26"
+          },
+          {
+            "label": "gasForApproval",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_uint256",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:27"
+          },
+          {
+            "label": "DOMAIN_SEPARATOR",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_bytes32",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:28"
+          },
+          {
+            "label": "nonces",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:31"
+          },
+          {
+            "label": "approvalNonces",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:32"
+          },
+          {
+            "label": "defaultGasPrice",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_uint256",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:45"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "822b641b03c66c3a1478f1e9f36c25dc1748c8c1c3f5047f18b59012c19d76a2": {
+      "address": "0x531e99B621f66C41b4A9fdE7F1d422B979BA804e",
+      "txHash": "0xd6d95434615e62a2dc5f08270992b99f42f2ce7edc246f50364acdcc0d530fb2",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "WrappedNative",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:17"
+          },
+          {
+            "label": "gasForSwap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_uint256",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:25"
+          },
+          {
+            "label": "gasForApproval",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_uint256",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:26"
+          },
+          {
+            "label": "DOMAIN_SEPARATOR",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_bytes32",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:27"
+          },
+          {
+            "label": "nonces",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:30"
+          },
+          {
+            "label": "approvalNonces",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:31"
+          },
+          {
+            "label": "defaultGasPrice",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_uint256",
+            "contract": "GaslessV3",
+            "src": "contracts\\GaslessV3.sol:44"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,7 @@
 const _ = require('lodash');
 require('hardhat-gas-reporter');
 require('@nomicfoundation/hardhat-toolbox');
+require('@openzeppelin/hardhat-upgrades');
 require('dotenv').config();
 
 const NODE_URL =
@@ -24,6 +25,11 @@ module.exports = _.merge(require('./hardhat.config'), {
         },
         polygon_mainnet: {
             url: NODE_URL,
+            accounts: [process.env.DEPLOY_PRIVATE_KEY],
+            config: configParams,
+        },
+        polygon_mumbai: {
+            url: 'https://polygon-mumbai.g.alchemy.com/v2/UutSwAIWYCQtrhf2xOv9z5LXetzzK6X5',
             accounts: [process.env.DEPLOY_PRIVATE_KEY],
             config: configParams,
         },
