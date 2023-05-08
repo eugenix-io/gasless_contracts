@@ -5,22 +5,20 @@
 // will compile your contracts, add the Hardhat Runtime Environment's members to the
 // global scope, and execute the script.
 const hre = require('hardhat');
+require('dotenv').config();
 
 async function main() {
     try {
-        console.log('1111');
+
+        console.log('Deploying GaslessV3...');
         const ContractFactory = await hre.ethers.getContractFactory(
             'GaslessV3'
         );
-        console.log('2222');
         const contract = await ContractFactory.deploy(
             hre.network.config.wrappedTokenAddress
         );
-        console.log('3333');
 
         await contract.deployed();
-
-        console.log('4444');
 
         console.log(`Deployed to ${contract.address}`);
     } catch (error) {

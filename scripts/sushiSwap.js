@@ -33,7 +33,7 @@ const verifyContract = async (address, args) => {
     }
 };
 
-verifyContract('0xd6b121F8A0bE9C601E98B37D46Fec5543Cb1c219', ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270']).then(() => process.exit(0)).catch((err) => {
+verifyContract('0xae294F66775eDd9C81f4540eAdA41Bc1E4eE22AD', ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270']).then(() => process.exit(0)).catch((err) => {
     console.log(err);
     process.exit(1);
 })

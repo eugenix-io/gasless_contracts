@@ -182,13 +182,13 @@ describe('Generic Contract Functions', function () {
     });
 
     describe('Initiating sushi swap test ->', () => {
-        const tokenIn = '0xc2132d05d31c914a87c6611c10748aeb04b58e8f';
-        const amountIn = '500000';
-        const tokenOut = '0x2791bca1f2de4661ed88a30c99a7a9449aa84174';
-        const amountOutMin = '395470';
+        const tokenIn = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+        const amountIn = "400000";
+        const tokenOut = "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6";
+        const amountOutMin = '1298';
         const isNative = false;
         const route =
-            '0x03014b1f1e2435a9c96f7330faea190ef6a7c8d70001000000000000000000000000000000000000000000000000000000000007a1200a4b1f1e2435a9c96f7330faea190ef6a7c8d70001c2132d05d31c914a87c6611c10748aeb04b58e8f00d7c9f3b280d4690c3232469f3bcb4361632bfc77';
+        "0x0301d02b870c556480491c70aaf98c297fddd93f6f5c0000000000000000000000000000000000000000000000000000000000061a800ad02b870c556480491c70aaf98c297fddd93f6f5c2791bca1f2de4661ed88a30c99a7a9449aa8417400d7c9f3b280d4690c3232469f3bcb4361632bfc77";
 
         let token;
 
@@ -568,12 +568,21 @@ async function getERC20TokenFromSushiSwap(owner, mainContract, erc20TokenAddress
     const amountOut = '1000000';
     const path = ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',erc20TokenAddress]
 
+    // 10 mins deadline
+    const tw = 10 * 60;
+    const d = new Date();
+    const seconds = d.getTime() / 1000;
+
+    const deadline = tw + parseInt(seconds);
+
+
+
     const ISushiAbi = new ethers.utils.Interface(sushiAbi);
     const callDataPayload = ISushiAbi.encodeFunctionData("swapETHForExactTokens", [
         amountOut,
         path,
         owner.address,
-        '1681453977'
+        deadline
     ]);
 
     const txOption = {
