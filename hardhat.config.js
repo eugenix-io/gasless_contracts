@@ -2,6 +2,8 @@ require('hardhat-gas-reporter');
 require('@nomicfoundation/hardhat-toolbox');
 require('dotenv').config();
 
+require('@openzeppelin/hardhat-upgrades');
+
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
     solidity: {
@@ -20,11 +22,11 @@ module.exports = {
         },
     },
     networks: {
-        hardhat: {
-            forking: {
-                enabled: true,
-            },
-        },
+        // hardhat: {
+        //     forking: {
+        //         enabled: true,
+        //     },
+        // },
     },
     gasReporter: {
         enabled: true,
