@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "hardhat/console.sol";
 
 struct SwapData {
     address callTo;
@@ -28,11 +29,11 @@ interface ILifiDiamond {
     ) external;
 }
 
-contract GasRouter is Initializable, OwnableUpgradeable {
+contract GasRouterV1 is Initializable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     ILifiDiamond private lifiDiamond;
-    mapping (address => uint) nonces;
+    mapping (address => uint) public nonces;
 
     bytes32 public DOMAIN_SEPARATOR;
     string public constant name = "Flint Gas Router";
@@ -98,6 +99,15 @@ contract GasRouter is Initializable, OwnableUpgradeable {
     }
 
     function swapWithJumperGasless (SwapWithJumperGaslessParams memory params) external returns(uint) {
+
+        console.log("Inside contract data:");
+        console.logBytes32(params._transactionId);
+        console.log(params._integrator);
+        console.log(params._referrer);
+        console.log(params._receiver);
+        console.log(params._minAmount);
+        console.log(params.nonce);
+
         bytes32 digest = _getDigestJumper(
             params._transactionId,
             params._integrator,

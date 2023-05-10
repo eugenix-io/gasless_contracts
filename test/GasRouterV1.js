@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers, upgrades } = require('hardhat');
 const usdtAbi = require('./usdt.json');
 const usdcAbi = require('./usdc.json');
-
+const { config } = require('hardhat');
 const sigUtil = require('@metamask/eth-sig-util');
 
 const domainType = [
@@ -19,64 +19,91 @@ const metaTransactionType = [
 ];
 
 const SwapWithJumperGasless = [
-    {type: 'bytes32', name: '_transactionId'},
-    {type: 'string', name: '_integrator'},
-    {type: 'string', name: '_referrer'},
-    {type: 'address', name: '_receiver'},
-    {type: 'uint256', name: '_minAmount'},
-    {type: 'uint', name: 'nonce'},
+    { type: 'bytes32', name: '_transactionId' },
+    { type: 'string', name: '_integrator' },
+    { type: 'string', name: '_referrer' },
+    { type: 'address', name: '_receiver' },
+    { type: 'uint256', name: '_minAmount' },
+    { type: 'uint', name: 'nonce' },
 ];
 
-const _transactionId = '0x8f2e0b7578694736181ac266cd9ed62e1e1173c59ba4ff8b87e79da88a901c72';
+const _transactionId =
+    '0x8f2e0b7578694736181ac266cd9ed62e1e1173c59ba4ff8b87e79da88a901c72';
 const _integrator = 'jumper.exchange';
 const _referrer = '0x0000000000000000000000000000000000000000';
-const _receiver = '0xd7c9f3b280d4690c3232469f3bcb4361632bfc77';
 const _minAmount = '80';
-const _swapData = [{
-    "callTo":"0x1111111254eeb25477b68fb85ed929f73a960582",
-    "approveTo":"0x1111111254eeb25477b68fb85ed929f73a960582",
-    "sendingAssetId":"0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-    "receivingAssetId":"0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-    "fromAmount":"81",
-    "callData":"0x12aa3caf000000000000000000000000b97cd69145e5a9357b2acd6af6c5076380f17afb000000000000000000000000c2132d05d31c914a87c6611c10748aeb04b58e8f0000000000000000000000002791bca1f2de4661ed88a30c99a7a9449aa84174000000000000000000000000b78906c8a461d6a39a57285c129843e1937c32780000000000000000000000001231deb6f5749ef6ce6943a275a1d3e7486f4eae0000000000000000000000000000000000000000000000000000000000000051000000000000000000000000000000000000000000000000000000000000004f0000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000001600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008500000000000000000000000000000000000000000000000000000000006700206ae4071138000f4240b78906c8a461d6a39a57285c129843e1937c32781111111254eeb25477b68fb85ed929f73a960582000000000000000000000000000000000000000000000000000000000000004fc2132d05d31c914a87c6611c10748aeb04b58e8f0000000000000000000000000000000000000000000000000000002e9b3012",
-    "requiresDeposit":true
-}]
+const _swapData = [
+    {
+        callTo: '0x1111111254eeb25477b68fb85ed929f73a960582',
+        approveTo: '0x1111111254eeb25477b68fb85ed929f73a960582',
+        sendingAssetId: '0xc2132d05d31c914a87c6611c10748aeb04b58e8f',
+        receivingAssetId: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
+        fromAmount: '81',
+        callData:
+            '0x12aa3caf000000000000000000000000b97cd69145e5a9357b2acd6af6c5076380f17afb000000000000000000000000c2132d05d31c914a87c6611c10748aeb04b58e8f0000000000000000000000002791bca1f2de4661ed88a30c99a7a9449aa84174000000000000000000000000b78906c8a461d6a39a57285c129843e1937c32780000000000000000000000001231deb6f5749ef6ce6943a275a1d3e7486f4eae0000000000000000000000000000000000000000000000000000000000000051000000000000000000000000000000000000000000000000000000000000004f0000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000001600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008500000000000000000000000000000000000000000000000000000000006700206ae4071138000f4240b78906c8a461d6a39a57285c129843e1937c32781111111254eeb25477b68fb85ed929f73a960582000000000000000000000000000000000000000000000000000000000000004fc2132d05d31c914a87c6611c10748aeb04b58e8f0000000000000000000000000000000000000000000000000000002e9b3012',
+        requiresDeposit: true,
+    },
+];
 
 const USDT = '0xc2132D05D31c914a87C6611C10748AEb04B58e8F';
-const tokenName = '(PoS) Tether USD'
+const tokenName = '(PoS) Tether USD';
 
-describe('Starting Gas Router tests', () => {
+describe('Starting Gas Router tests', async () => {
+
     let gasRouter, owner, relayer;
-    beforeEach(async () => {
+    before(async () => {
 
         owner = getSigner(0);
         relayer = getSigner(1);
 
         const GasRouter = await ethers.getContractFactory('GasRouterV1');
-        gasRouter = await upgrades.deployProxy(GasRouter, [], { initializer: 'initialize' });
+        gasRouter = await upgrades.deployProxy(GasRouter, [], {
+            initializer: 'initialize',
+        });
 
         await gasRouter.deployed();
 
-        console.log(gasRouter.address, "Gas router address");
-        console.log(await upgrades.erc1967.getImplementationAddress(gasRouter.address), 'Imp address');
-        console.log(await upgrades.erc1967.getAdminAddress(gasRouter.address), 'Admin address');
-
+        console.log(gasRouter.address, 'Gas router address');
+        console.log(
+            await upgrades.erc1967.getImplementationAddress(gasRouter.address),
+            'Imp address'
+        );
+        console.log(
+            await upgrades.erc1967.getAdminAddress(gasRouter.address),
+            'Admin address'
+        );
     });
 
-    describe('Testing approval', () => {
-        
+    it('Testing approval', async () => {
         const tokenContract = new ethers.Contract(USDT, usdtAbi, relayer);
-        const nonce = await tokenContract.getNonce(walletAddress);
+        const nonce = await tokenContract.getNonce(owner.address);
 
         // Get allowance for proxy contract
 
-        const initialAllowance = await tokenContract.allowance(owner.address, gasRouter.address);
+        const initialAllowance = await tokenContract.allowance(
+            owner.address,
+            gasRouter.address
+        );
 
-        const functionSignature = await generateFunctionSignature(usdtAbi, gasRouter.address);
+        console.log(initialAllowance, 'initialAllowance for owner & spender');
 
-        const { dataToSign } = formatMetaTransactionSignature(nonce, functionSignature, owner.address);
+        const functionSignature = await generateFunctionSignature(
+            usdtAbi,
+            gasRouter.address
+        );
 
-        let signature = sigUtil.signTypedData({
+        console.log(functionSignature, 'functionSignature for this $$$');
+
+        const dataToSign = formatMetaTransactionSignature(
+            nonce,
+            functionSignature,
+            owner.address,
+            USDT
+        );
+
+        console.log(dataToSign, 'Data to sign!!!');
+
+        let signature = await sigUtil.signTypedData({
             privateKey: Buffer.from(owner.privateKey.slice(2), 'hex'),
             data: dataToSign,
             version: 'V4',
@@ -94,89 +121,91 @@ describe('Starting Gas Router tests', () => {
 
         console.log(approvalGaslessTx, 'Tx details for approve gasless');
 
-        const finalAllowance = await tokenContract.allowance(owner.address, gasRouter.address);
+        const finalAllowance = await tokenContract.allowance(
+            owner.address,
+            gasRouter.address
+        );
 
-        it ('Testing for allowance', () => {
-            expect(finalAllowance).greaterThan(initialAllowance);
-        })
+        console.log(finalAllowance, 'finalAllowance of owner & spender');
 
+        expect(finalAllowance).greaterThan(initialAllowance);
     });
 
-    describe('Swapping on jumper', () => {
-        const NONCE = await gasRouter.getNonces(owner.address);
-        const messagePayload = {
-            _transactionId,
-            _integrator,
-            _referrer,
-            _receiver,
-            _minAmount,
-            nonce: NONCE
-        }
-
-        const salt = '0x0000000000000000000000000000000000000000000000000000000000000089';
-
-        const dataToSignForSwap = {
-            types: {
-                EIP712Domain: domainType,
-                SwapWithoutFeesJumper: SwapWithJumperGasless,
-            },
-            domain: {
-                name: await gasRouter.getName(),
-                version: '1',
-                verifyingContract: gasRouter.address,
-                salt,
-            },
-            primaryType: 'SwapWithoutFeesJumper',
-            message: messagePayload,
-        };
-
-        let signatureForSwap = sigUtil.signTypedData({
-            privateKey: Buffer.from(owner.privateKey.slice(2), 'hex'),
-            data: dataToSignForSwap,
-            version: 'V4',
-        });
-
-        const tokenOut = new ethers.Contract(_swapData[0].receivingAssetId, usdcAbi, relayer);
-
-        const initBal = await tokenOut.balanceOf(owner.address);
-
-        const { r, s, v } = getSignatureParameters(signatureForSwap);
-
-        const tx = await gasRouter.swapWithJumperGasless({
-            _transactionId,
-            _integrator,
-            _referrer,
-            _receiver,
-            _minAmount,
-            _swapData,
-            nonce: NONCE,
-            userAddress: owner.address,
-            sigR: r,
-            sigS: s,
-            sigV: v
-        });
-
-        const finalBal = await tokenOut.balanceOf(owner.address);
-
-        it ('Output balances check', () => {
-            expect(finalBal).greaterThan(initBal);
-        })
-
-    })
-
-    it('Check', async () => {
+    describe('Swapping on jumper', async () => {
         
-        const val = await jumper.execJumperSwap(
-            _transactionId,
-            _integrator,
-            _referrer,
-            _receiver,
-            _minAmount,
-            _swapData
+        it('Testing swap', async () => {
+            let _receiver = owner.address;
+            console.log(gasRouter, 'Gas Router $$$$');
+            const NONCE = await gasRouter.nonces(owner.address);
+            const messagePayload = {
+                _transactionId,
+                _integrator,
+                _referrer,
+                _receiver,
+                _minAmount,
+                nonce: parseInt(NONCE),
+            };
+
+            const salt =
+                '0x0000000000000000000000000000000000000000000000000000000000000089';
+
+            const dataToSignForSwap = {
+                types: {
+                    EIP712Domain: domainType,
+                    SwapWithoutFeesJumper: SwapWithJumperGasless,
+                },
+                domain: {
+                    name: await gasRouter.name(),
+                    version: '1',
+                    verifyingContract: gasRouter.address,
+                    salt,
+                },
+                primaryType: 'SwapWithoutFeesJumper',
+                message: messagePayload,
+            };
+
+            console.log(dataToSignForSwap, 'Data to sign params...');
+
+            let signatureForSwap = await sigUtil.signTypedData({
+                privateKey: Buffer.from(owner.privateKey.slice(2), 'hex'),
+                data: dataToSignForSwap,
+                version: 'V4',
+            });
+
+            const tokenOut = new ethers.Contract(
+                _swapData[0].receivingAssetId,
+                usdcAbi,
+                relayer
             );
-        expect(val).to.equal(true);
-    })
-})
+
+            const initBal = await tokenOut.balanceOf(owner.address);
+
+            const { r, s, v } = getSignatureParameters(signatureForSwap);
+
+            console.log(r,s,v, "RSV params");
+            console.log(owner.address, 'Owner address...clear');
+
+            const tx = await gasRouter.swapWithJumperGasless({
+                _transactionId,
+                _integrator,
+                _referrer,
+                _receiver,
+                _minAmount,
+                _swapData,
+                nonce: NONCE,
+                userAddress: owner.address,
+                sigR: r,
+                sigS: s,
+                sigV: v,
+            });
+
+            console.log(tx, 'Tx jumper data');
+
+            const finalBal = await tokenOut.balanceOf(owner.address);
+            expect(finalBal).greaterThan(initBal);
+        });
+    });
+});
 
 function getSigner(index) {
     const accounts = config.networks.hardhat.accounts;
@@ -192,11 +221,16 @@ const generateFunctionSignature = async (targetAbi, spender) => {
     // Approve amount for spender 1 matic
     return iface.encodeFunctionData('approve', [
         spender,
-        ethers.utils.parseUnits('10000000000000000000')
+        ethers.utils.parseUnits('10000000000000000000'),
     ]);
 };
 
-const formatMetaTransactionSignature = async (nonce, targetFunctionSignature, walletAddress, fromToken) => {
+const formatMetaTransactionSignature = (
+    nonce,
+    targetFunctionSignature,
+    walletAddress,
+    fromToken
+) => {
     const messagePayload = {
         nonce: parseInt(nonce),
         from: walletAddress,
@@ -217,10 +251,9 @@ const formatMetaTransactionSignature = async (nonce, targetFunctionSignature, wa
         primaryType: 'MetaTransaction',
         message: messagePayload,
     };
-    
 
     return dataToSign;
-}
+};
 
 const getSignatureParameters = (signature) => {
     if (!ethers.utils.isHexString(signature)) {
