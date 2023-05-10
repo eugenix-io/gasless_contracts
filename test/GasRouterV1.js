@@ -21,7 +21,8 @@ const metaTransactionType = [
 const SwapWithJumperGasless = [
     { type: 'uint', name: 'nonce' },
     { type: 'uint', name: 'minAmount'},
-    { type: 'address', name: 'receiver'}
+    { type: 'address', name: 'receiver'},
+    { type: 'bytes32', name: 'transactionId'}
 ];
 
 const transactionId =
@@ -200,7 +201,8 @@ describe('Starting Gas Router tests', async () => {
             const messagePayload = {
                 nonce: parseInt(NONCE),
                 minAmount,
-                receiver
+                receiver,
+                transactionId
             };
 
             const salt =

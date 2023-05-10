@@ -42,7 +42,7 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
     bytes32 public constant JUMPER_SWAP_TYPEHASH = 
         keccak256(
             bytes(
-                'SwapWithoutFeesJumper(uint nonce,uint minAmount,address receiver)'
+                'SwapWithoutFeesJumper(uint nonce,uint minAmount,address receiver,bytes32 transactionId)'
             )
         );
 
@@ -222,7 +222,8 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
                             JUMPER_SWAP_TYPEHASH,
                             nonce,
                             minAmount,
-                            receiver
+                            receiver,
+                            transactionId
                         )
                     )
                 )
