@@ -19,20 +19,15 @@ const metaTransactionType = [
 ];
 
 const SwapWithJumperGasless = [
-    { type: 'bytes32', name: '_transactionId' },
-    { type: 'string', name: '_integrator' },
-    { type: 'string', name: '_referrer' },
-    { type: 'address', name: '_receiver' },
-    { type: 'uint256', name: '_minAmount' },
-    { type: 'uint', name: 'nonce' },
+    { type: 'uint', name: 'nonce' }
 ];
 
-const _transactionId =
+const transactionId =
     '0x8f2e0b7578694736181ac266cd9ed62e1e1173c59ba4ff8b87e79da88a901c72';
-const _integrator = 'jumper.exchange';
-const _referrer = '0x0000000000000000000000000000000000000000';
-const _minAmount = '80';
-const _swapData = [
+const integrator = 'jumper.exchange';
+const referrer = '0x0000000000000000000000000000000000000000';
+const minAmount = '80';
+const swapData = [
     {
         callTo: '0x1111111254eeb25477b68fb85ed929f73a960582',
         approveTo: '0x1111111254eeb25477b68fb85ed929f73a960582',
@@ -101,8 +96,6 @@ describe('Starting Gas Router tests', async () => {
             USDT
         );
 
-        console.log(dataToSign, 'Data to sign!!!');
-
         let signature = await sigUtil.signTypedData({
             privateKey: Buffer.from(owner.privateKey.slice(2), 'hex'),
             data: dataToSign,
@@ -134,16 +127,13 @@ describe('Starting Gas Router tests', async () => {
     describe('Swapping on jumper', async () => {
         
         it('Testing swap', async () => {
-            let _receiver = owner.address;
-            console.log(gasRouter, 'Gas Router $$$$');
+            console.log(gasRouter.address, 'Router address...');
+            console.log(relayer.address, 'Realayer address..');
+            console.log(owner.address, 'Owner address..');
+            let receiver = owner.address;
             const NONCE = await gasRouter.nonces(owner.address);
             const messagePayload = {
-                _transactionId,
-                _integrator,
-                _referrer,
-                _receiver,
-                _minAmount,
-                nonce: parseInt(NONCE),
+                nonce: parseInt(NONCE)
             };
 
             const salt =
@@ -164,7 +154,7 @@ describe('Starting Gas Router tests', async () => {
                 message: messagePayload,
             };
 
-            console.log(dataToSignForSwap, 'Data to sign params...');
+            console.log(JSON.stringify(dataToSignForSwap), 'Swap data sign');
 
             let signatureForSwap = await sigUtil.signTypedData({
                 privateKey: Buffer.from(owner.privateKey.slice(2), 'hex'),
@@ -173,7 +163,7 @@ describe('Starting Gas Router tests', async () => {
             });
 
             const tokenOut = new ethers.Contract(
-                _swapData[0].receivingAssetId,
+                swapData[0].receivingAssetId,
                 usdcAbi,
                 relayer
             );
@@ -186,12 +176,12 @@ describe('Starting Gas Router tests', async () => {
             console.log(owner.address, 'Owner address...clear');
 
             const tx = await gasRouter.swapWithJumperGasless({
-                _transactionId,
-                _integrator,
-                _referrer,
-                _receiver,
-                _minAmount,
-                _swapData,
+                transactionId,
+                integrator,
+                referrer,
+                receiver,
+                minAmount,
+                swapData,
                 nonce: NONCE,
                 userAddress: owner.address,
                 sigR: r,

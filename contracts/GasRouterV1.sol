@@ -24,7 +24,7 @@ interface ILifiDiamond {
         string calldata _integrator,
         string calldata _referrer,
         address payable _receiver,
-        uint256 _minAmount,
+        uint _minAmount,
         SwapData[] calldata _swapData
     ) external;
 }
@@ -42,19 +42,19 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
     bytes32 public constant JUMPER_SWAP_TYPEHASH = 
         keccak256(
             bytes(
-                'SwapWithoutFeesJumper(bytes32 _transactionId,string _integrator,string _referrer,address _receiver,uint256 _minAmount,uint nonce)'
+                'SwapWithoutFeesJumper(uint nonce)'
             )
         );
 
     address private constant LifiDiamondProxyAddress = 0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE;
 
     struct SwapWithJumperGaslessParams {
-        bytes32 _transactionId;
-        string _integrator;
-        string _referrer;
-        address payable _receiver;
-        uint256 _minAmount;
-        SwapData[] _swapData;
+        bytes32 transactionId;
+        string integrator;
+        string referrer;
+        address payable receiver;
+        uint minAmount;
+        SwapData[] swapData;
         uint nonce;
         address userAddress;
         bytes32 sigR;
@@ -101,20 +101,22 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
     function swapWithJumperGasless (SwapWithJumperGaslessParams memory params) external returns(uint) {
 
         console.log("Inside contract data:");
-        console.logBytes32(params._transactionId);
-        console.log(params._integrator);
-        console.log(params._referrer);
-        console.log(params._receiver);
-        console.log(params._minAmount);
+        console.logBytes32(bytes32(getChainId()));
+        console.log(address(this));
+        console.logBytes32(params.transactionId);
+        console.log(params.integrator);
+        console.log(params.referrer);
+        console.log(params.receiver);
+        console.log(params.minAmount);
         console.log(params.nonce);
 
         bytes32 digest = _getDigestJumper(
-            params._transactionId,
-            params._integrator,
-            params._referrer,
-            params._receiver,
-            params._minAmount,
-            params._swapData,
+            params.transactionId,
+            params.integrator,
+            params.referrer,
+            params.receiver,
+            params.minAmount,
+            params.swapData,
             params.nonce
         );
 
@@ -127,13 +129,13 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
     function _swapWithJumperGaslessImplement (SwapWithJumperGaslessParams memory params) internal returns(uint) {
 
         // Check the from token and transfer the amountIn to this contract
-        IERC20Upgradeable token = IERC20Upgradeable(params._swapData[0].sendingAssetId);
-        token.safeTransferFrom(params.userAddress, address(this), params._swapData[0].fromAmount);
+        IERC20Upgradeable token = IERC20Upgradeable(params.swapData[0].sendingAssetId);
+        token.safeTransferFrom(params.userAddress, address(this), params.swapData[0].fromAmount);
 
         // Check whether Flint contract has given allowance or not
         if (
             token.allowance(address(this), LifiDiamondProxyAddress) <
-            params._swapData[0].fromAmount
+            params.swapData[0].fromAmount
         ) {
             token.safeApprove(
                 LifiDiamondProxyAddress,
@@ -142,22 +144,22 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
         }
 
         // Check the initial balance of output token
-        IERC20Upgradeable tokenOut = IERC20Upgradeable(params._swapData[0].receivingAssetId);
+        IERC20Upgradeable tokenOut = IERC20Upgradeable(params.swapData[0].receivingAssetId);
 
-        uint userInitBalance = tokenOut.balanceOf(params._receiver);
+        uint userInitBalance = tokenOut.balanceOf(params.receiver);
 
         // Execute this transaction to diamond jumper
 
         lifiDiamond.executeSwap(
-            params._transactionId,
-            params._integrator,
-            params._referrer,
-            params._receiver,
-            params._minAmount,
-            params._swapData
+            params.transactionId,
+            params.integrator,
+            params.referrer,
+            params.receiver,
+            params.minAmount,
+            params.swapData
         );
 
-        uint userFinalBalance = tokenOut.balanceOf(params._receiver);
+        uint userFinalBalance = tokenOut.balanceOf(params.receiver);
 
         uint amountOut = userFinalBalance - userInitBalance;
 
@@ -172,8 +174,21 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
         uint8 sigV,
         uint nonce
     ) internal {
+        console.log("_verifyDigest $$$");
+        console.logBytes32(digest);
+        console.log(userAddress);
+        console.logBytes32(sigR);
+        console.logBytes32(sigS);
+        console.log(sigV);
+        console.log(nonce);
+
+        address recAddress = ecrecover(digest, sigV, sigR, sigS);
+
+        console.log("Recovered address");
+        console.log(recAddress);
+
         require(
-            userAddress == ecrecover(digest, sigV, sigR, sigS),
+            userAddress == recAddress,
             '[SWAP WITHOUT FEES] Invalid signature'
         );
         require(
@@ -183,12 +198,12 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
     }
 
     function _getDigestJumper (
-        bytes32 _transactionId,
-        string memory _integrator,
-        string memory _referrer,
-        address _receiver,
-        uint256 _minAmount,
-        SwapData[] memory _swapData,
+        bytes32 transactionId,
+        string memory integrator,
+        string memory referrer,
+        address receiver,
+        uint minAmount,
+        SwapData[] memory swapData,
         uint nonce
     ) internal view returns(bytes32) {
         return
@@ -199,11 +214,6 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
                     keccak256(
                         abi.encode(
                             JUMPER_SWAP_TYPEHASH,
-                            _transactionId,
-                            _integrator,
-                            _referrer,
-                            _receiver,
-                            _minAmount,
                             nonce
                         )
                     )
