@@ -19,14 +19,16 @@ const metaTransactionType = [
 ];
 
 const SwapWithJumperGasless = [
-    { type: 'uint', name: 'nonce' }
+    { type: 'uint', name: 'nonce' },
+    { type: 'uint', name: 'minAmount'},
+    { type: 'address', name: 'receiver'}
 ];
 
 const transactionId =
     '0x8f2e0b7578694736181ac266cd9ed62e1e1173c59ba4ff8b87e79da88a901c72';
 const integrator = 'jumper.exchange';
 const referrer = '0x0000000000000000000000000000000000000000';
-const minAmount = '80';
+const minAmount = 80;
 const swapData = [
     {
         callTo: '0x1111111254eeb25477b68fb85ed929f73a960582',
@@ -196,7 +198,9 @@ describe('Starting Gas Router tests', async () => {
             let receiver = owner.address;
             const NONCE = await gasRouter.nonces(owner.address);
             const messagePayload = {
-                nonce: parseInt(NONCE)
+                nonce: parseInt(NONCE),
+                minAmount,
+                receiver
             };
 
             const salt =
