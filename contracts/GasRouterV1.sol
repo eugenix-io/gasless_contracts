@@ -143,12 +143,16 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
             );
         }
 
+        console.log("Reached herer!!!!!");
+
         // Check the initial balance of output token
         IERC20Upgradeable tokenOut = IERC20Upgradeable(params.swapData[0].receivingAssetId);
 
         uint userInitBalance = tokenOut.balanceOf(params.receiver);
 
         // Execute this transaction to diamond jumper
+
+        console.log("Reached herer!!!!!222222");
 
         lifiDiamond.executeSwap(
             params.transactionId,
@@ -158,6 +162,8 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
             params.minAmount,
             params.swapData
         );
+
+        console.log("Reached herer!!!!!333333");
 
         uint userFinalBalance = tokenOut.balanceOf(params.receiver);
 

@@ -43,13 +43,65 @@ const swapData = [
 const USDT = '0xc2132D05D31c914a87C6611C10748AEb04B58e8F';
 const tokenName = '(PoS) Tether USD';
 
+async function getERC20TokenFromSushiSwap(owner, erc20TokenAddress) {
+
+    const currNativeBal = await ethers.provider.getBalance(owner.address);
+
+    console.log(currNativeBal, '$$$$$ balance');
+
+    const sushiAbi = [
+        "function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)"
+    ];
+
+    const amountOut = '800000';
+    const path = ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',erc20TokenAddress]
+
+    // 10 mins deadline
+    const tw = 10 * 60;
+    const d = new Date();
+    const seconds = d.getTime() / 1000;
+
+    const deadline = tw + parseInt(seconds);
+
+
+
+    const ISushiAbi = new ethers.utils.Interface(sushiAbi);
+    const callDataPayload = ISushiAbi.encodeFunctionData("swapETHForExactTokens", [
+        amountOut,
+        path,
+        owner.address,
+        deadline
+    ]);
+
+    const txOption = {
+        to: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506',
+        value: '1000000000000000000',
+        data: callDataPayload
+    };
+
+    console.log(txOption, 'tx options');
+
+    const tx = await owner.sendTransaction(txOption);
+
+    console.log(tx, 'Buying erc txn');
+
+    const tokenContract = await ethers.getContractAt('ERC20', erc20TokenAddress, owner);
+
+    const bal = await tokenContract.balanceOf(owner.address);
+
+    console.log(bal, 'balance now %%%%');
+
+}
+
 describe('Starting Gas Router tests', async () => {
 
-    let gasRouter, owner, relayer;
+    let gasRouter, owner, relayer, tokenContract;
     before(async () => {
 
         owner = getSigner(0);
         relayer = getSigner(1);
+
+        tokenContract = new ethers.Contract(USDT, usdtAbi, relayer);
 
         const GasRouter = await ethers.getContractFactory('GasRouterV1');
         gasRouter = await upgrades.deployProxy(GasRouter, [], {
@@ -69,8 +121,19 @@ describe('Starting Gas Router tests', async () => {
         );
     });
 
+    // Buy ERC-20 tokens for owner
+    it('Buying erc-20 token from sushiswap', async () => {
+        const initBalanceOfERC20 = await tokenContract.balanceOf(owner.address);
+
+        await getERC20TokenFromSushiSwap(owner, USDT);
+
+        const finalBalanceOfERC20 = await tokenContract.balanceOf(owner.address);
+
+        expect(parseInt(finalBalanceOfERC20)).greaterThan(parseInt(initBalanceOfERC20));
+
+    })
+
     it('Testing approval', async () => {
-        const tokenContract = new ethers.Contract(USDT, usdtAbi, relayer);
         const nonce = await tokenContract.getNonce(owner.address);
 
         // Get allowance for proxy contract
