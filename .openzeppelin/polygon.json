@@ -1,0 +1,140 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0x4FAcF7a3bD9852a341DC31ba177F9F1513a98983",
+    "txHash": "0x74e05e97ec17607316588bd54b88cf919f600325fc6f0f1f7a88ff8f49cfbecb"
+  },
+  "proxies": [
+    {
+      "address": "0x4d060CE7A7f47c6910899199858AF49Bc948aeC6",
+      "txHash": "0xbe721e26877152d701a5e4b9fc5831cd8f314b24320009e7fb3f1f8f88b51c42",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "a34efceeb00e48a001597d9eb04e3f90fba504933ef40ed9e6fbe9014c9fdac7": {
+      "address": "0x7C0FcE77Ca46102708148983AAf0eAa2FdC3CdA2",
+      "txHash": "0x72f28d401d48483c6658c5d648c1715bf1e0f91a8af10dff7119afe014ec6349",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "lifiDiamond",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_contract(ILifiDiamond)1698",
+            "contract": "GasRouterV1",
+            "src": "contracts/GasRouterV1.sol:35"
+          },
+          {
+            "label": "nonces",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "GasRouterV1",
+            "src": "contracts/GasRouterV1.sol:36"
+          },
+          {
+            "label": "DOMAIN_SEPARATOR",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_bytes32",
+            "contract": "GasRouterV1",
+            "src": "contracts/GasRouterV1.sol:38"
+          },
+          {
+            "label": "EIP712_VERSION",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_string_storage",
+            "contract": "GasRouterV1",
+            "src": "contracts/GasRouterV1.sol:40"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(ILifiDiamond)1698": {
+            "label": "contract ILifiDiamond",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    }
+  }
+}

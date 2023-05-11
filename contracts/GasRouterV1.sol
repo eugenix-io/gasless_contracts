@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 struct SwapData {
     address callTo;
@@ -100,16 +100,6 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
 
     function swapWithJumperGasless (SwapWithJumperGaslessParams memory params) external returns(uint) {
 
-        console.log("Inside contract data:");
-        console.logBytes32(bytes32(getChainId()));
-        console.log(address(this));
-        console.logBytes32(params.transactionId);
-        console.log(params.integrator);
-        console.log(params.referrer);
-        console.log(params.receiver);
-        console.log(params.minAmount);
-        console.log(params.nonce);
-
         bytes32 digest = _getDigestJumper(
             params.transactionId,
             params.integrator,
@@ -143,7 +133,7 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
             );
         }
 
-        console.log("Reached herer!!!!!");
+
 
         // Check the initial balance of output token
         IERC20Upgradeable tokenOut = IERC20Upgradeable(params.swapData[0].receivingAssetId);
@@ -152,7 +142,7 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
 
         // Execute this transaction to diamond jumper
 
-        console.log("Reached herer!!!!!222222");
+
 
         lifiDiamond.executeSwap(
             params.transactionId,
@@ -163,7 +153,7 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
             params.swapData
         );
 
-        console.log("Reached herer!!!!!333333");
+
 
         uint userFinalBalance = tokenOut.balanceOf(params.receiver);
 
@@ -180,18 +170,11 @@ contract GasRouterV1 is Initializable, OwnableUpgradeable {
         uint8 sigV,
         uint nonce
     ) internal {
-        console.log("_verifyDigest $$$");
-        console.logBytes32(digest);
-        console.log(userAddress);
-        console.logBytes32(sigR);
-        console.logBytes32(sigS);
-        console.log(sigV);
-        console.log(nonce);
 
         address recAddress = ecrecover(digest, sigV, sigR, sigS);
 
-        console.log("Recovered address");
-        console.log(recAddress);
+
+
 
         require(
             userAddress == recAddress,
