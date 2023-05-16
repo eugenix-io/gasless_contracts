@@ -3,8 +3,8 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol';
+import '@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
@@ -76,6 +76,8 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         uint8 sigV;
     }
 
+    //when v2 will be deployed, initializer here should be replaced with onlyInitializing and constructor of v2 should have initializer, as the initializer modifier can only be called once
+
     function initialize(
         address _wrappedNativeTokenAddress,
         uint _gasForSwap,
@@ -114,7 +116,7 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         uint256 amount,
         address tokenAddress
     ) public onlyOwner {
-        ERC20 token = ERC20(tokenAddress);
+        ERC20Upgradeable token = ERC20Upgradeable(tokenAddress);
         require(token.transfer(to, amount), 'Failed to transfer ERC20 token');
     }
 
@@ -165,7 +167,7 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
     function _swapWithoutFees(
         SwapWithoutFeesParams memory params
     ) internal returns (uint256 amountOut) {
-        ERC20 tokenContract = ERC20(params.tokenIn);
+        ERC20Upgradeable tokenContract = ERC20Upgradeable(params.tokenIn);
 
         require(
             tokenContract.transferFrom(
@@ -312,7 +314,9 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         );
 
         console.log('Fees: ', fees);
-        ERC20Permit token = ERC20Permit(params.tokenAddress);
+        ERC20PermitUpgradeable token = ERC20PermitUpgradeable(
+            params.tokenAddress
+        );
         token.permit(
             params.userAddress,
             address(this),
