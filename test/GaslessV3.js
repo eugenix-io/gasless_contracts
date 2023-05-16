@@ -1,9 +1,9 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const sigUtil = require('@metamask/eth-sig-util');
-const { config } = require('hardhat');
+const { config, upgrades } = require('hardhat');
 const axios = require('axios');
-const { domainType } = require('ethers-eip712');
+// const { domainType } = require('ethers-eip712');
 
 const getTestCases = () => {
     switch (process.env.TEST_NETWORK) {
@@ -124,6 +124,7 @@ describe('Generic Contract Functions', function () {
         owner = getSigner(0);
         relayer = getSigner(1);
         main = await deployContract();
+        await main.deployed();
         console.log('MAIN ADDRESS FIRST DEPLOYMENT - ', main.address);
     });
 
@@ -158,6 +159,7 @@ describe('Generic Contract Functions', function () {
     describe('Iterative test cases', function () {
         before(async () => {
             main = await deployContract();
+            await main.deployed();
             console.log('MAIN ADDRESS SECOND DEPLOYMENT - ', main.address);
         });
 
@@ -464,12 +466,12 @@ function getSigner(index) {
 async function deployContract() {
     console.log('deploying main contract...');
     const Main = await ethers.getContractFactory('GaslessV3');
-    return await Main.deploy(
+    return await upgrades.deployProxy(Main, [
         WrappedNative,
         ethers.BigNumber.from(chainConfig.gasForSwap),
         ethers.BigNumber.from(chainConfig.gasForApproval),
-        ethers.BigNumber.from(chainConfig.defaultGasPrice)
-    );
+        ethers.BigNumber.from(chainConfig.defaultGasPrice),
+    ]);
 }
 
 async function getRoute(amount, type, tokenIn, tokenOut) {

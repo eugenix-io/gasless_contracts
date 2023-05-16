@@ -9,3 +9,8 @@ typechain-types
 cache
 artifacts
 
+# OpenZeppelin
+.openzeppelin/unknown-*.json
+
+# vscode
+.vscode/*
