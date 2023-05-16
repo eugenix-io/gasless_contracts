@@ -1,30 +1,32 @@
-pragma solidity >=0.8.0 <0.9.0;
 //SPDX-License-Identifier: MIT
+pragma solidity >=0.8.0 <0.9.0;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol';
+import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
+import '@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
-import 'hardhat/console.sol';
+
 import './interfaces/WrappedToken.sol';
 
-contract GaslessV3 is Ownable {
-    ISwapRouter public immutable swapRouter;
-    IQuoter public immutable quoter;
+import 'hardhat/console.sol';
+
+contract GaslessV3 is Initializable, OwnableUpgradeable {
     address public WrappedNative;
     address public constant SWAP_ROUTER_ADDRESS =
         0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address public constant QUOTER_ADDRESS =
         0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6;
     uint24 public constant feeTier = 3000;
-    uint public balance = 0;
+    ISwapRouter public constant swapRouter = ISwapRouter(SWAP_ROUTER_ADDRESS);
+    IQuoter public constant quoter = IQuoter(QUOTER_ADDRESS);
     uint public gasForSwap;
     uint public gasForApproval;
     bytes32 public DOMAIN_SEPARATOR;
     string public constant name = 'Flint Gasless';
-    string public EIP712_VERSION = '1';
+    string public constant EIP712_VERSION = '1';
     mapping(address => uint) public nonces;
     mapping(address => uint) public approvalNonces;
     bytes32 public constant GASLESS_SWAP_TYPEHASH =
@@ -74,14 +76,14 @@ contract GaslessV3 is Ownable {
         uint8 sigV;
     }
 
-    constructor(
+    //when v2 will be deployed, initializer here should be replaced with onlyInitializing and constructor of v2 should have initializer, as the initializer modifier can only be called once
+
+    function initialize(
         address _wrappedNativeTokenAddress,
         uint _gasForSwap,
         uint _gasForApproval,
         uint _defaultGasPrice
-    ) {
-        swapRouter = ISwapRouter(SWAP_ROUTER_ADDRESS);
-        quoter = IQuoter(QUOTER_ADDRESS);
+    ) public initializer {
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 keccak256(
@@ -97,6 +99,7 @@ contract GaslessV3 is Ownable {
         gasForSwap = _gasForSwap;
         gasForApproval = _gasForApproval;
         defaultGasPrice = _defaultGasPrice;
+        __Ownable_init();
     }
 
     function getBalance() public view returns (uint256) {
@@ -113,7 +116,7 @@ contract GaslessV3 is Ownable {
         uint256 amount,
         address tokenAddress
     ) public onlyOwner {
-        ERC20 token = ERC20(tokenAddress);
+        ERC20Upgradeable token = ERC20Upgradeable(tokenAddress);
         require(token.transfer(to, amount), 'Failed to transfer ERC20 token');
     }
 
@@ -164,7 +167,7 @@ contract GaslessV3 is Ownable {
     function _swapWithoutFees(
         SwapWithoutFeesParams memory params
     ) internal returns (uint256 amountOut) {
-        ERC20 tokenContract = ERC20(params.tokenIn);
+        ERC20Upgradeable tokenContract = ERC20Upgradeable(params.tokenIn);
 
         require(
             tokenContract.transferFrom(
@@ -311,7 +314,9 @@ contract GaslessV3 is Ownable {
         );
 
         console.log('Fees: ', fees);
-        ERC20Permit token = ERC20Permit(params.tokenAddress);
+        ERC20PermitUpgradeable token = ERC20PermitUpgradeable(
+            params.tokenAddress
+        );
         token.permit(
             params.userAddress,
             address(this),
