@@ -6,6 +6,7 @@
     "scripts": {
         "test:polygon": "TEST_NETWORK=polygon npx hardhat --config ./hardhat.config.polygon.js test ./test/GaslessV3.js --bail",
         "test:arbitrum": "TEST_NETWORK=arbitrum npx hardhat --config ./hardhat.config.arbitrum.js test ./test/GaslessV3.js --bail",
+        "test:ethereum": "TEST_NETWORK=ethereum npx hardhat --config ./hardhat.config.ethereum.js test ./test/GaslessV3.js --bail",
         "deploy:polygon": "npx hardhat run scripts/deploy.js --config ./hardhat.config.polygon.js --network polygon_mainnet",
         "deploy:arbitrum": "npx hardhat run scripts/deploy.js --config ./hardhat.config.arbitrum.js --network arbitrum_mainnet",
         "deployProxy:mumbai": "npx hardhat run scripts/deployProxy.js --config ./hardhat.config.polygon.js --network polygon_mumbai",

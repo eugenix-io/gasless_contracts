@@ -11,6 +11,8 @@ const getTestCases = () => {
             return require('./testCases/polygon');
         case 'arbitrum':
             return require('./testCases/arbitrum');
+            case 'ethereum':
+            return require('./testCases/ethereum');
     }
     throw 'TEST_NETWORK must be defined to run test cases';
 };
@@ -188,7 +190,7 @@ function describeTestForGaslessSwaps(data) {
         let toTokenAddress = data.toTokenAddress;
 
         this.beforeAll(async () => {
-            token = await ethers.getContractAt('ERC20', tokenAddress, owner);
+            token = await ethers.getContractAt('ERC20Upgradeable', tokenAddress, owner);
         });
 
         it('Get token from Uniswap', async () => {
@@ -206,7 +208,7 @@ function describeTestForGaslessSwaps(data) {
         it('Swap tokens without fees', async () => {
             let mainRelayer = await main.connect(relayer);
 
-            let toToken = await ethers.getContractAt('ERC20', toTokenAddress);
+            let toToken = await ethers.getContractAt('ERC20Upgradeable', toTokenAddress);
             let initialTokenBalUser = await toToken.balanceOf(owner.address);
             console.log('this is initial token: ' + initialTokenBalUser);
             let initialnativeBalUser = await ethers.provider.getBalance(
@@ -217,7 +219,7 @@ function describeTestForGaslessSwaps(data) {
 
             let amountIn =
                 data.decimals == 6
-                    ? ethers.BigNumber.from(10 ** 6)
+                    ? ethers.BigNumber.from(10 **12)
                     : ethers.utils.parseEther('1');
             let totalBalance = await token.balanceOf(owner.address);
             if (data.amountIn) {
@@ -306,7 +308,7 @@ function describeTestsForGaslessApproval(data) {
         let tokenAddress = data.tokenAddress;
 
         this.beforeAll(async () => {
-            token = await ethers.getContractAt('ERC20', tokenAddress, owner);
+            token = await ethers.getContractAt('ERC20Upgradeable', tokenAddress, owner);
         });
 
         it('Get token from Uniswap', async () => {
