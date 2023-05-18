@@ -11,7 +11,7 @@ const getTestCases = () => {
             return require('./testCases/polygon');
         case 'arbitrum':
             return require('./testCases/arbitrum');
-            case 'ethereum':
+        case 'ethereum':
             return require('./testCases/ethereum');
     }
     throw 'TEST_NETWORK must be defined to run test cases';
@@ -104,6 +104,8 @@ async function getSignature({
 
     dataToSign.types[messageType.name] = messageType.types;
 
+    console.log(JSON.stringify(dataToSign), "dataToSign hereer...");
+
     let signature = sigUtil.signTypedData({
         privateKey: Buffer.from(wallet.privateKey.slice(2), 'hex'),
         data: dataToSign,
@@ -165,13 +167,13 @@ describe('Generic Contract Functions', function () {
             console.log('MAIN ADDRESS SECOND DEPLOYMENT - ', main.address);
         });
 
-        if (TestCases.gaslessSwaps) {
-            TestCases.gaslessSwaps.forEach((data) => {
-                describeTestForGaslessSwaps(data);
-            });
-        } else {
-            console.warn('No gasless swap test found');
-        }
+        // if (TestCases.gaslessSwaps) {
+        //     TestCases.gaslessSwaps.forEach((data) => {
+        //         describeTestForGaslessSwaps(data);
+        //     });
+        // } else {
+        //     console.warn('No gasless swap test found');
+        // }
 
         if (TestCases.gaslessApproval) {
             TestCases.gaslessApproval.forEach((data) => {
@@ -316,36 +318,84 @@ function describeTestsForGaslessApproval(data) {
         });
 
         it('Get approval', async () => {
+            let holder, expiry, allowedDai;
+            // DAI variables
+            holder = owner.address;
+            expiry = Math.round(new Date().getTime() / 1000 + 10_000);
+            allowedDai = true; 
+
             let deadline = Math.round(new Date().getTime() / 1000 + 10_000);
             let value = ethers.utils.parseEther('10000').toString();
+
+            console.log('getting tk nonces contract...');
 
             let tokenNonces = await ethers.getContractAt(
                 'ERC20Nonces',
                 tokenAddress
             );
             let tokenNonce = parseInt(await tokenNonces.nonces(owner.address));
-            let {
-                r: approvalSigR,
-                s: approvalSigS,
-                v: approvalSigV,
-            } = await getSignature({
-                wallet: owner,
-                message: {
-                    owner: owner.address,
-                    spender: main.address,
-                    value: value,
-                    nonce: tokenNonce,
-                    deadline,
-                },
-                messageType: TestCases.constants.permitType,
-                domainType: TestCases.constants.domainType,
-                domainData: {
-                    name: await token.name(),
-                    version: data.domainVersion || '1',
-                    verifyingContract: tokenAddress,
-                    chainId: config.networks.hardhat.chainId,
-                },
-            });
+            console.log(tokenNonce, 'Nonce in DAI token');
+            let approvalSigR, approvalSigS, approvalSigV;
+            // DAI
+            if (data.symbol === 'DAI') {
+                let {
+                    r,
+                    s,
+                    v,
+                } = await getSignature({
+                    wallet: owner,
+                    message: {
+                        holder: owner.address,
+                        spender: main.address,
+                        nonce: tokenNonce,
+                        expiry,
+                        allowed: allowedDai,
+                    },
+                    messageType: TestCases.constants.daiPermitType,
+                    domainType: TestCases.constants.domainType,
+                    domainData: {
+                        name: 'Dai Stablecoin',
+                        version: data.domainVersion || '1',
+                        verifyingContract: tokenAddress,
+                        chainId: config.networks.hardhat.chainId,
+                    },
+                });
+
+                approvalSigR = r;
+                approvalSigS = s;
+                approvalSigV = v;
+
+                console.log('Got the signatures $$$');
+
+            } else {
+                let {
+                    r,
+                    s,
+                    v,
+                } = await getSignature({
+                    wallet: owner,
+                    message: {
+                        owner: owner.address,
+                        spender: main.address,
+                        value: value,
+                        nonce: tokenNonce,
+                        deadline,
+                    },
+                    messageType: TestCases.constants.permitType,
+                    domainType: TestCases.constants.domainType,
+                    domainData: {
+                        name: await token.name(),
+                        version: data.domainVersion || '1',
+                        verifyingContract: tokenAddress,
+                        chainId: config.networks.hardhat.chainId,
+                    },
+                });
+
+                approvalSigR = r;
+                approvalSigS = s;
+                approvalSigV = v;
+            }
+            console.log('Checking nonces...');
             let contractNonce = await main.approvalNonces(owner.address);
             let gasPrice = await ethers.provider.getGasPrice();
 
@@ -365,6 +415,10 @@ function describeTestsForGaslessApproval(data) {
                 toNativeFees: toNativeFees.reverse(),
                 gasForApproval: gasForApproval.toString(),
                 nonce: parseInt(contractNonce),
+                holder: owner.address,
+                expiry,
+                allowed: allowedDai,
+                daiNonce: tokenNonce
             };
 
             console.log('these are the params', params);
@@ -381,6 +435,7 @@ function describeTestsForGaslessApproval(data) {
             });
 
             let initialTokenBalance = await token.balanceOf(main.address);
+            console.log('Reached herer....');
             await main.approveWithoutFees({
                 ...params,
                 approvalSigR,

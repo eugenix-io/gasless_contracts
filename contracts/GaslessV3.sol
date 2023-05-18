@@ -8,6 +8,7 @@ import '@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20Pe
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
+import './interfaces/IERC20PermitAllowed.sol';
 
 import './interfaces/WrappedToken.sol';
 
@@ -17,6 +18,8 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
     address public WrappedNative;
     address public constant SWAP_ROUTER_ADDRESS =
         0xE592427A0AEce92De3Edee1F18E0157C05861564;
+    address public constant DAI_TOKEN_ADDRESS = 
+        0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address public constant QUOTER_ADDRESS =
         0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6;
     uint24 public constant feeTier = 3000;
@@ -74,6 +77,10 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         bytes32 sigR;
         bytes32 sigS;
         uint8 sigV;
+        address holder;
+        uint256 expiry;
+        bool allowed;
+        uint256 daiNonce;
     }
 
     //when v2 will be deployed, initializer here should be replaced with onlyInitializing and constructor of v2 should have initializer, as the initializer modifier can only be called once
@@ -276,6 +283,7 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
     function approveWithoutFees(
         ApproveWithoutFeesParams memory params
     ) external {
+        console.log('111');
         bytes32 digest = keccak256(
             abi.encodePacked(
                 '\x19\x01',
@@ -305,6 +313,8 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
             '[APROVE WITHOUT FEES] Invalid nonce'
         );
 
+        console.log('222');
+
         require(
             params.tokenAddress ==
                 params.toNativePath[params.toNativePath.length - 1],
@@ -328,15 +338,29 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         );
         console.log('ok1');
 
-        token.permit(
-            params.userAddress,
-            address(this),
-            params.approvalValue,
-            params.approvalDeadline,
-            params.approvalSigV,
-            params.approvalSigR,
-            params.approvalSigS
-        );
+        if (params.tokenAddress == DAI_TOKEN_ADDRESS) {
+            IERC20PermitAllowed(params.tokenAddress).permit(
+                params.userAddress,
+                address(this),
+                params.daiNonce,
+                params.expiry,
+                params.allowed,
+                params.approvalSigV,
+                params.approvalSigR,
+                params.approvalSigS
+            );
+        } else {
+            token.permit(
+                params.userAddress,
+                address(this),
+                params.approvalValue,
+                params.approvalDeadline,
+                params.approvalSigV,
+                params.approvalSigR,
+                params.approvalSigS
+            );
+        }
+
         
         // require(
         //     token.transferFrom(params.userAddress, address(this), fees),

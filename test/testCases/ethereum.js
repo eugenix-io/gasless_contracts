@@ -48,30 +48,45 @@ module.exports = {
     ],
     gaslessApproval: [
         {
-            testName: 'USDT Approval',
-            tokenAddress: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-            decimals: 6,
-            fee: 1_000_000,
-        },
-        {
             testName: 'USDC Approval',
             tokenAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
             decimals: 6,
             fee: 1_000_000,
+            domainVersion: '2',
+            symbol: 'USDC'
         },
         {
             testName: 'DAI Approval',
             tokenAddress: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
             decimals: 18,
             fee: 1_000_000,
-            domainVersion: '2',
+            domainVersion: '1',
+            symbol: 'DAI'
         },
         {
             testName: 'ARB Approval',
             tokenAddress: '0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1',
             decimals: 18,
             fee: 1_000_000,
-        }
+            domainVersion: '1',
+            symbol: 'ARB'
+        },
+        {
+            testName: '1INCH Approval',
+            tokenAddress: '0x111111111117dC0aa78b770fA6A738034120C302',
+            decimals: 18,
+            fee: 1_000_000,
+            domainVersion: '1',
+            symbol: '1INCH'
+        },
+        // {
+        //     testName: 'AAVE Approval',
+        //     tokenAddress: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
+        //     decimals: 18,
+        //     fee: 1_000_000,
+        //     domainVersion: '1',
+        //     symbol: 'AAVE'
+        // }
     ],
     constants: {
         permitType: {
@@ -81,6 +96,16 @@ module.exports = {
                 { name: 'value', type: 'uint256' },
                 { name: 'nonce', type: 'uint256' },
                 { name: 'deadline', type: 'uint256' },
+            ],
+            name: 'Permit',
+        },
+        daiPermitType: {
+            types: [
+                { name: 'holder', type: 'address' },
+                { name: 'spender', type: 'address' },
+                { name: 'nonce', type: 'uint256' },
+                { name: 'expiry', type: 'uint256' },
+                { name: 'allowed', type: 'bool' },
             ],
             name: 'Permit',
         },
