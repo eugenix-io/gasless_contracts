@@ -8,8 +8,8 @@ const NODE_URL =
 const configParams = {
     wrappedTokenAddress: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
     gasForSwap: 10_000_000,
-    gasForApproval: 100_000_000,
-    defaultGasPrice: 50_000_000_000,
+    gasForApproval: 1_000_000,
+    defaultGasPrice: 500_000_000,
 };
 
 module.exports = _.merge(require('./hardhat.config'), {
