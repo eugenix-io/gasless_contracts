@@ -3,6 +3,7 @@ const { ethers } = require('hardhat');
 const sigUtil = require('@metamask/eth-sig-util');
 const { config, upgrades } = require('hardhat');
 const axios = require('axios');
+const aaveABi = require('./util/aaveAbi.json');
 // const { domainType } = require('ethers-eip712');
 
 const getTestCases = () => {
@@ -333,8 +334,26 @@ function describeTestsForGaslessApproval(data) {
                 'ERC20Nonces',
                 tokenAddress
             );
-            let tokenNonce = parseInt(await tokenNonces.nonces(owner.address));
-            console.log(tokenNonce, 'Nonce in DAI token');
+
+            console.log(owner.address, 'Owner address...');
+            // Handle tokenNonces for AAVE
+            // AAVE has nonce declared as _nonce get contract with abi
+            let tokenNonce;
+
+            if (data.symbol === 'AAVE') {
+                const aaveContract = await ethers.getContractAt(
+                    aaveABi,
+                    tokenAddress,
+                    owner
+                );
+
+                tokenNonce = parseInt(await aaveContract._nonces(owner.address));
+            } else {
+                tokenNonce = parseInt(await tokenNonces.nonces(owner.address));
+            }
+
+
+            console.log(tokenNonce, 'Nonce of token');
             let approvalSigR, approvalSigS, approvalSigV;
             // DAI
             if (data.symbol === 'DAI') {
@@ -354,7 +373,7 @@ function describeTestsForGaslessApproval(data) {
                     messageType: TestCases.constants.daiPermitType,
                     domainType: TestCases.constants.domainType,
                     domainData: {
-                        name: 'Dai Stablecoin',
+                        name: await token.name(),
                         version: data.domainVersion || '1',
                         verifyingContract: tokenAddress,
                         chainId: config.networks.hardhat.chainId,
