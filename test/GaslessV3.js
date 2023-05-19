@@ -168,13 +168,13 @@ describe('Generic Contract Functions', function () {
             console.log('MAIN ADDRESS SECOND DEPLOYMENT - ', main.address);
         });
 
-        // if (TestCases.gaslessSwaps) {
-        //     TestCases.gaslessSwaps.forEach((data) => {
-        //         describeTestForGaslessSwaps(data);
-        //     });
-        // } else {
-        //     console.warn('No gasless swap test found');
-        // }
+        if (TestCases.gaslessSwaps) {
+            TestCases.gaslessSwaps.forEach((data) => {
+                describeTestForGaslessSwaps(data);
+            });
+        } else {
+            console.warn('No gasless swap test found');
+        }
 
         if (TestCases.gaslessApproval) {
             TestCases.gaslessApproval.forEach((data) => {
