@@ -222,7 +222,7 @@ function describeTestForGaslessSwaps(data) {
 
             let amountIn =
                 data.decimals == 6
-                    ? ethers.BigNumber.from(10 **12)
+                    ? ethers.BigNumber.from(10 ** 12)
                     : ethers.utils.parseEther('1');
             let totalBalance = await token.balanceOf(owner.address);
             if (data.amountIn) {
@@ -323,7 +323,7 @@ function describeTestsForGaslessApproval(data) {
             // DAI variables
             holder = owner.address;
             expiry = Math.round(new Date().getTime() / 1000 + 10_000);
-            allowedDai = true; 
+            allowedDai = true;
 
             let deadline = Math.round(new Date().getTime() / 1000 + 10_000);
             let value = ethers.utils.parseEther('10000').toString();

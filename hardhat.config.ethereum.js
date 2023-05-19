@@ -23,12 +23,12 @@ module.exports = _.merge(require('./hardhat.config'), {
         },
         ethereum_mainnet: {
             url: NODE_URL,
-            accounts: ["5b697e75c3ff1772d88534841e002f6dfb62e31f8b09297350ff23d9fb410ded"],
+            accounts: [process.env.DEPLOY_PRIVATE_KEY],
             config: configParams,
         },
         ethereum_goerli: {
             url: 'https://eth-goerli.g.alchemy.com/v2/J2osTw41ZwlAma3Og1i-fIpWZHb42DGK',
-            accounts: ["5b697e75c3ff1772d88534841e002f6dfb62e31f8b09297350ff23d9fb410ded"],
+            accounts: [process.env.DEPLOY_PRIVATE_KEY],
             config: configParams,
         },
     },

@@ -12,13 +12,15 @@ import './interfaces/IERC20PermitAllowed.sol';
 
 import './interfaces/WrappedToken.sol';
 
+import './interfaces/IERC20Upgradeable1.sol';
+
 import 'hardhat/console.sol';
 
 contract GaslessV3 is Initializable, OwnableUpgradeable {
     address public WrappedNative;
     address public constant SWAP_ROUTER_ADDRESS =
         0xE592427A0AEce92De3Edee1F18E0157C05861564;
-    address public constant DAI_TOKEN_ADDRESS = 
+    address public constant DAI_TOKEN_ADDRESS =
         0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address public constant QUOTER_ADDRESS =
         0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6;
@@ -83,8 +85,6 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         uint256 daiNonce;
     }
 
-    //when v2 will be deployed, initializer here should be replaced with onlyInitializing and constructor of v2 should have initializer, as the initializer modifier can only be called once
-
     function initialize(
         address _wrappedNativeTokenAddress,
         uint _gasForSwap,
@@ -123,7 +123,7 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         uint256 amount,
         address tokenAddress
     ) public onlyOwner {
-        ERC20Upgradeable token = ERC20Upgradeable(tokenAddress);
+        IERC20Upgradeable1 token = IERC20Upgradeable1(tokenAddress);
         require(token.transfer(to, amount), 'Failed to transfer ERC20 token');
     }
 
@@ -174,25 +174,15 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
     function _swapWithoutFees(
         SwapWithoutFeesParams memory params
     ) internal returns (uint256 amountOut) {
-        ERC20Upgradeable tokenContract = ERC20Upgradeable(params.tokenIn);
+        IERC20Upgradeable1 tokenContract = IERC20Upgradeable1(params.tokenIn);
         console.log('tokenIn this :', params.tokenIn);
 
-        if (true) {
-            tokenContract.transferFrom(
-                params.userAddress,
-                address(this),
-                params.amountIn
-            );
-        }
-        // require(
-        //     tokenContract.transferFrom(
-        //         params.userAddress,
-        //         address(this),
-        //         params.amountIn
-        //     ),
-        //     '[SWAP WITHOUT FEES] Failed to transfer from'
-        // );
-        //check if we already have the allowance for fromTokenContract
+        tokenContract.transferFrom(
+            params.userAddress,
+            address(this),
+            params.amountIn
+        );
+
         if (
             tokenContract.allowance(address(this), address(swapRouter)) <
             params.amountIn
@@ -204,7 +194,6 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
                 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
             );
         }
-        
 
         //convert input token into Native to collect the fees
         uint swappedIn = 0;
@@ -237,7 +226,7 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         console.log('THIS IS SWAPPED IN -> ', swappedIn);
 
         require(swappedIn < params.amountIn, 'Swap amount is too low');
-        
+
         //do the desired swap
         if (params.path.length == 0) {
             ISwapRouter.ExactInputSingleParams memory paramsIn = ISwapRouter
@@ -267,7 +256,7 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
                 });
             amountOut = swapRouter.exactInput(paramsIn);
         }
-        
+
         if (params.isTokenOutNative) {
             WrappedToken wrappedToken = WrappedToken(WrappedNative);
             wrappedToken.withdraw(amountOut);
@@ -283,7 +272,6 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
     function approveWithoutFees(
         ApproveWithoutFeesParams memory params
     ) external {
-        console.log('111');
         bytes32 digest = keccak256(
             abi.encodePacked(
                 '\x19\x01',
@@ -313,8 +301,6 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
             '[APROVE WITHOUT FEES] Invalid nonce'
         );
 
-        console.log('222');
-
         require(
             params.tokenAddress ==
                 params.toNativePath[params.toNativePath.length - 1],
@@ -336,7 +322,6 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         ERC20PermitUpgradeable token = ERC20PermitUpgradeable(
             params.tokenAddress
         );
-        console.log('ok1');
 
         if (params.tokenAddress == DAI_TOKEN_ADDRESS) {
             IERC20PermitAllowed(params.tokenAddress).permit(
@@ -361,14 +346,7 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
             );
         }
 
-        
-        // require(
-        //     token.transferFrom(params.userAddress, address(this), fees),
-        //     '[APPROVE WITHOUT FEES] Failed to transfer from'
-        // );
-        if (true) {
-            token.transferFrom(params.userAddress, address(this), fees);
-        }
+        token.transferFrom(params.userAddress, address(this), fees);
     }
 
     function _verifyDigest(
