@@ -168,13 +168,13 @@ describe('Generic Contract Functions', function () {
             console.log('MAIN ADDRESS SECOND DEPLOYMENT - ', main.address);
         });
 
-        // if (TestCases.gaslessSwaps) {
-        //     TestCases.gaslessSwaps.forEach((data) => {
-        //         describeTestForGaslessSwaps(data);
-        //     });
-        // } else {
-        //     console.warn('No gasless swap test found');
-        // }
+        if (TestCases.gaslessSwaps) {
+            TestCases.gaslessSwaps.forEach((data) => {
+                describeTestForGaslessSwaps(data);
+            });
+        } else {
+            console.warn('No gasless swap test found');
+        }
 
         if (TestCases.gaslessApproval) {
             TestCases.gaslessApproval.forEach((data) => {
@@ -340,7 +340,7 @@ function describeTestsForGaslessApproval(data) {
             // AAVE has nonce declared as _nonce get contract with abi
             let tokenNonce;
 
-            if (data.symbol === 'AAVE') {
+            if (data.symbol === 'AAVE_ETH') {
                 const aaveContract = await ethers.getContractAt(
                     aaveABi,
                     tokenAddress,
@@ -356,7 +356,7 @@ function describeTestsForGaslessApproval(data) {
             console.log(tokenNonce, 'Nonce of token');
             let approvalSigR, approvalSigS, approvalSigV;
             // DAI
-            if (data.symbol === 'DAI') {
+            if (data.binaryPermitType === true) {
                 let {
                     r,
                     s,
@@ -374,7 +374,7 @@ function describeTestsForGaslessApproval(data) {
                     domainType: TestCases.constants.domainType,
                     domainData: {
                         name: await token.name(),
-                        version: data.domainVersion || '1',
+                        version: data.domainVersion || '2',
                         verifyingContract: tokenAddress,
                         chainId: config.networks.hardhat.chainId,
                     },

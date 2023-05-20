@@ -12,7 +12,7 @@ import './interfaces/IERC20PermitAllowed.sol';
 
 import './interfaces/WrappedToken.sol';
 
-import './interfaces/IERC20Upgradeable1.sol';
+import './interfaces/IERC20UpgradeableModified.sol';
 
 import 'hardhat/console.sol';
 
@@ -123,7 +123,9 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         uint256 amount,
         address tokenAddress
     ) public onlyOwner {
-        IERC20Upgradeable1 token = IERC20Upgradeable1(tokenAddress);
+        IERC20UpgradeableModified token = IERC20UpgradeableModified(
+            tokenAddress
+        );
         require(token.transfer(to, amount), 'Failed to transfer ERC20 token');
     }
 
@@ -174,7 +176,9 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
     function _swapWithoutFees(
         SwapWithoutFeesParams memory params
     ) internal returns (uint256 amountOut) {
-        IERC20Upgradeable1 tokenContract = IERC20Upgradeable1(params.tokenIn);
+        IERC20UpgradeableModified tokenContract = IERC20UpgradeableModified(
+            params.tokenIn
+        );
         console.log('tokenIn this :', params.tokenIn);
 
         tokenContract.transferFrom(
@@ -323,7 +327,7 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
             params.tokenAddress
         );
 
-        if (params.tokenAddress == DAI_TOKEN_ADDRESS) {
+        if (params.tokenAddress == DAI_TOKEN_ADDRESS && getChainId() == 1) {
             IERC20PermitAllowed(params.tokenAddress).permit(
                 params.userAddress,
                 address(this),

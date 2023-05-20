@@ -61,7 +61,8 @@ module.exports = {
             decimals: 18,
             fee: 1_000_000,
             domainVersion: '1',
-            symbol: 'DAI'
+            symbol: 'DAI',
+            binaryPermitType: true
         },
         {
             testName: 'ARB Approval',
@@ -85,7 +86,7 @@ module.exports = {
             decimals: 18,
             fee: 1_000_000,
             domainVersion: '1',
-            symbol: 'AAVE'
+            symbol: 'AAVE_ETH'
         },
         {
             testName: 'Uniswap Approval',
