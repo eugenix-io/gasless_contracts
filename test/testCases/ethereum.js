@@ -86,6 +86,13 @@ module.exports = {
             fee: 1_000_000,
             domainVersion: '1',
             symbol: 'AAVE'
+        },
+        {
+            testName: 'Uniswap Approval',
+            tokenAddress: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
+            decimals: 18,
+            fee: 1_000_000,
+            symbol: 'UNI'
         }
     ],
     constants: {
@@ -115,5 +122,10 @@ module.exports = {
             { name: 'chainId', type: 'uint256' },
             { name: 'verifyingContract', type: 'address' },
         ],
+        uniswapDomainType: [
+            { name: 'name', type: 'string' },
+            { name: 'chainId', type: 'uint256' },
+            { name: 'verifyingContract', type: 'address' },
+        ]
     },
 };

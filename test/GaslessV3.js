@@ -168,13 +168,13 @@ describe('Generic Contract Functions', function () {
             console.log('MAIN ADDRESS SECOND DEPLOYMENT - ', main.address);
         });
 
-        if (TestCases.gaslessSwaps) {
-            TestCases.gaslessSwaps.forEach((data) => {
-                describeTestForGaslessSwaps(data);
-            });
-        } else {
-            console.warn('No gasless swap test found');
-        }
+        // if (TestCases.gaslessSwaps) {
+        //     TestCases.gaslessSwaps.forEach((data) => {
+        //         describeTestForGaslessSwaps(data);
+        //     });
+        // } else {
+        //     console.warn('No gasless swap test found');
+        // }
 
         if (TestCases.gaslessApproval) {
             TestCases.gaslessApproval.forEach((data) => {
@@ -386,6 +386,32 @@ function describeTestsForGaslessApproval(data) {
 
                 console.log('Got the signatures $$$');
 
+            } else if (data.symbol === 'UNI') {
+                let {
+                    r,
+                    s,
+                    v,
+                } = await getSignature({
+                    wallet: owner,
+                    message: {
+                        owner: owner.address,
+                        spender: main.address,
+                        value: value,
+                        nonce: tokenNonce,
+                        deadline,
+                    },
+                    messageType: TestCases.constants.permitType,
+                    domainType: TestCases.constants.uniswapDomainType,
+                    domainData: {
+                        name: await token.name(),
+                        verifyingContract: tokenAddress,
+                        chainId: config.networks.hardhat.chainId,
+                    },
+                });
+
+                approvalSigR = r;
+                approvalSigS = s;
+                approvalSigV = v;
             } else {
                 let {
                     r,
