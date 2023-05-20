@@ -133,6 +133,10 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         gasForSwap = newGasForSwap;
     }
 
+    function setWrappedNativeToken (address _wrappedNativeToken) external onlyOwner {
+        WrappedNative = _wrappedNativeToken;
+    }
+
     function setGasForApproval(uint newGasForApproval) external onlyOwner {
         gasForApproval = newGasForApproval;
     }

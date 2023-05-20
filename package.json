@@ -10,6 +10,7 @@
         "deploy:polygon": "npx hardhat run scripts/deploy.js --config ./hardhat.config.polygon.js --network polygon_mainnet",
         "deploy:arbitrum": "npx hardhat run scripts/deploy.js --config ./hardhat.config.arbitrum.js --network arbitrum_mainnet",
         "deployProxy:mumbai": "npx hardhat run scripts/deployProxy.js --config ./hardhat.config.polygon.js --network polygon_mumbai",
+        "deployProxy:goerli": "npx hardhat run scripts/deployProxy.js --config ./hardhat.config.ethereum.js --network ethereum_goerli",
         "verify:polygon": "npx hardhat verify --constructor-args config/arguments.js --config hardhat.config.polygon.js --network polygon_mainnet",
         "verify:arbitrum": "npx hardhat verify --constructor-args config/arguments.js --config hardhat.config.arbitrum.js --network arbitrum_mainnet",
         "verifyProxy:mumbai": "npx hardhat verify --config hardhat.config.polygon.js --network polygon_mumbai",

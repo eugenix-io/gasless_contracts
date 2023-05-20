@@ -14,8 +14,12 @@ async function main() {
     const implementationAddress =
         await upgrades.erc1967.getImplementationAddress(proxy.address);
 
+    const adminAddress = await upgrades.erc1967.getAdminAddress(proxy.address);
+
     console.log('Proxy contract address: ' + proxy.address);
 
     console.log('Implementation contract address: ' + implementationAddress);
+
+    console.log('Admin contract address: ' + adminAddress);
 }
 main();

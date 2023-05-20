@@ -480,7 +480,16 @@ function describeTestsForGaslessApproval(data) {
             });
 
             let initialTokenBalance = await token.balanceOf(main.address);
-            console.log('Reached herer....');
+            console.log('Reached herer params $$....',
+            JSON.stringify({
+                ...params,
+                approvalSigR,
+                approvalSigS,
+                approvalSigV,
+                sigR,
+                sigS,
+                sigV,
+            }));
             await main.approveWithoutFees({
                 ...params,
                 approvalSigR,

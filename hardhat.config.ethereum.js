@@ -29,7 +29,10 @@ module.exports = _.merge(require('./hardhat.config'), {
         ethereum_goerli: {
             url: 'https://eth-goerli.g.alchemy.com/v2/J2osTw41ZwlAma3Og1i-fIpWZHb42DGK',
             accounts: [process.env.DEPLOY_PRIVATE_KEY],
-            config: configParams,
+            config: {
+                ...configParams,
+                wrappedTokenAddress: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6',
+            },
         },
     },
     gasReporter: {
