@@ -327,7 +327,7 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         ERC20PermitUpgradeable token = ERC20PermitUpgradeable(
             params.tokenAddress
         );
-uint initBalance = token.balanceOf(address(this));
+        uint initBalance = token.balanceOf(address(this));
         if (params.tokenAddress == DAI_TOKEN_ADDRESS && getChainId() == 1) {
             IERC20PermitAllowed(params.tokenAddress).permit(
                 params.userAddress,
@@ -353,7 +353,7 @@ uint initBalance = token.balanceOf(address(this));
        
         token.transferFrom(params.userAddress, address(this), fees);
         uint finalBalance = token.balanceOf(address(this));
-        require(finalBalance - initBalance >=0, 'Transfer failed');
+        require(finalBalance - initBalance > 0, 'Transfer failed in Approve flow');
     }
 
     function _verifyDigest(

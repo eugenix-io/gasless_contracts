@@ -28,7 +28,7 @@ module.exports = _.merge(require('./hardhat.config'), {
         },
         arbitrum_goerli: {
             url: 'https://arb-goerli.g.alchemy.com/v2/Fc-1XH8Pq-B5tDAdwrhgOWB5P1hyfSv2',
-            accounts: [process.env.DEPLOY_PRIVATE_KEY_GOERLI],
+            accounts: [process.env.DEPLOY_PRIVATE_KEY],
             config: configParams,
         },
     },

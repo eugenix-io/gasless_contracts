@@ -213,11 +213,13 @@ function describeTestForGaslessSwaps(data) {
 
             let toToken = await ethers.getContractAt('ERC20Upgradeable', toTokenAddress);
             let initialTokenBalUser = await toToken.balanceOf(owner.address);
+            console.log(initialTokenBalUser, "initialTokenBalUser $$$$");
             console.log('this is initial token: ' + initialTokenBalUser);
             let initialnativeBalUser = await ethers.provider.getBalance(
                 owner.address
             );
             let initialFeesBalContract = await token.balanceOf(main.address);
+            
             let initialNonce = await main.nonces(owner.address);
 
             let amountIn =
@@ -227,9 +229,12 @@ function describeTestForGaslessSwaps(data) {
             let totalBalance = await token.balanceOf(owner.address);
             if (data.amountIn) {
                 amountIn = data.amountIn;
-            } else if (amountIn.gt(totalBalance)) {
+            }
+            if (amountIn.gt(totalBalance)) {
                 amountIn = totalBalance;
             }
+
+            console.log(amountIn, "amountIN OF swap $$$");
 
             let uniswapGas = await main.gasForSwap();
             let [tonativePath, tonativeFees] = await getRoute(
@@ -319,11 +324,7 @@ function describeTestsForGaslessApproval(data) {
         });
 
         it('Get approval', async () => {
-            let holder, expiry, allowedDai;
             // DAI variables
-            holder = owner.address;
-            expiry = Math.round(new Date().getTime() / 1000 + 10_000);
-            allowedDai = true;
 
             let deadline = Math.round(new Date().getTime() / 1000 + 10_000);
             let value = ethers.utils.parseEther('10000').toString();
@@ -367,8 +368,8 @@ function describeTestsForGaslessApproval(data) {
                         holder: owner.address,
                         spender: main.address,
                         nonce: tokenNonce,
-                        expiry,
-                        allowed: allowedDai,
+                        expiry: deadline,
+                        allowed: true,
                     },
                     messageType: TestCases.constants.daiPermitType,
                     domainType: TestCases.constants.domainType,
@@ -460,10 +461,7 @@ function describeTestsForGaslessApproval(data) {
                 toNativeFees: toNativeFees.reverse(),
                 gasForApproval: gasForApproval.toString(),
                 nonce: parseInt(contractNonce),
-                holder: owner.address,
-                expiry,
-                allowed: allowedDai,
-                daiNonce: tokenNonce
+                tokenNonce
             };
 
             console.log('these are the params', params);
