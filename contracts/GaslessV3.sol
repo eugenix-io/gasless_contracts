@@ -79,10 +79,7 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         bytes32 sigR;
         bytes32 sigS;
         uint8 sigV;
-        address holder;
-        uint256 expiry;
-        bool allowed;
-        uint256 daiNonce;
+        uint256 tokenNonce;
     }
 
     function initialize(
@@ -330,14 +327,14 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
         ERC20PermitUpgradeable token = ERC20PermitUpgradeable(
             params.tokenAddress
         );
-
+uint initBalance = token.balanceOf(address(this));
         if (params.tokenAddress == DAI_TOKEN_ADDRESS && getChainId() == 1) {
             IERC20PermitAllowed(params.tokenAddress).permit(
                 params.userAddress,
                 address(this),
-                params.daiNonce,
-                params.expiry,
-                params.allowed,
+                params.tokenNonce,
+                params.approvalDeadline,
+                true,
                 params.approvalSigV,
                 params.approvalSigR,
                 params.approvalSigS
@@ -353,8 +350,10 @@ contract GaslessV3 is Initializable, OwnableUpgradeable {
                 params.approvalSigS
             );
         }
-
+       
         token.transferFrom(params.userAddress, address(this), fees);
+        uint finalBalance = token.balanceOf(address(this));
+        require(finalBalance - initBalance >=0, 'Transfer failed');
     }
 
     function _verifyDigest(

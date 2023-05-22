@@ -23,16 +23,21 @@ module.exports = _.merge(require('./hardhat.config'), {
         },
         ethereum_mainnet: {
             url: NODE_URL,
-            accounts: [process.env.DEPLOY_PRIVATE_KEY],
+            accounts: ["5b697e75c3ff1772d88534841e002f6dfb62e31f8b09297350ff23d9fb410ded"],
             config: configParams,
         },
         ethereum_goerli: {
             url: 'https://eth-goerli.g.alchemy.com/v2/J2osTw41ZwlAma3Og1i-fIpWZHb42DGK',
+<<<<<<< Updated upstream
             accounts: [process.env.DEPLOY_PRIVATE_KEY],
             config: {
                 ...configParams,
                 wrappedTokenAddress: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6',
             },
+=======
+            accounts: ["5b697e75c3ff1772d88534841e002f6dfb62e31f8b09297350ff23d9fb410ded"],
+            config: configParams,
+>>>>>>> Stashed changes
         },
     },
     gasReporter: {
