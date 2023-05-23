@@ -1,8 +1,14 @@
 const { ethers, upgrades } = require('hardhat');
 const hre = require('hardhat');
 
+
+
 async function main() {
+    console.log('Deploying...');
+    
     const GaslessV3 = await ethers.getContractFactory('GaslessV3');
+
+    console.log(GaslessV3, "Contract factory...");
     const proxy = await upgrades.deployProxy(GaslessV3, [
         hre.network.config.config.wrappedTokenAddress,
         hre.network.config.config.gasForSwap,
@@ -10,6 +16,8 @@ async function main() {
         hre.network.config.config.defaultGasPrice,
     ]);
     await proxy.deployed();
+
+    console.log('Successfully deployed GaslessV3');
 
     const implementationAddress =
         await upgrades.erc1967.getImplementationAddress(proxy.address);

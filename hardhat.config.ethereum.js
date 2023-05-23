@@ -1,3 +1,4 @@
+// const { ethers } = require('hardhat');
 const _ = require('lodash');
 require('hardhat-gas-reporter');
 require('@nomicfoundation/hardhat-toolbox');
@@ -7,9 +8,9 @@ const NODE_URL =
     'https://eth-mainnet.g.alchemy.com/v2/N_pCh3--6wAkFNi7voWZ1Kv9XPp1GdLX';
 const configParams = {
     wrappedTokenAddress: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-    gasForSwap: 10_000_000,
-    gasForApproval: 1_000_000,
-    defaultGasPrice: 500_000_000,
+    gasForSwap: 600_000,
+    gasForApproval: 300_000,
+    defaultGasPrice: 50_000_000_000,
 };
 
 module.exports = _.merge(require('./hardhat.config'), {
@@ -23,16 +24,17 @@ module.exports = _.merge(require('./hardhat.config'), {
         },
         ethereum_mainnet: {
             url: NODE_URL,
-            accounts: ["5b697e75c3ff1772d88534841e002f6dfb62e31f8b09297350ff23d9fb410ded"],
+            accounts: [process.env.DEPLOY_PRIVATE_KEY],
             config: configParams,
         },
         ethereum_goerli: {
-            url: 'https://eth-goerli.g.alchemy.com/v2/J2osTw41ZwlAma3Og1i-fIpWZHb42DGK',
+            url: 'https://eth-goerli.g.alchemy.com/v2/3D5U3uMqEdtpsOvbWR31SprhFxgqGr5k',
             accounts: [process.env.DEPLOY_PRIVATE_KEY],
             config: {
                 ...configParams,
                 wrappedTokenAddress: '0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6',
             },
+            gasPrice: 50000000000
         },
     },
     gasReporter: {

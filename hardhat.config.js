@@ -21,11 +21,11 @@ module.exports = {
         },
     },
     networks: {
-        hardhat: {
-           forking: {
-            enabled: true,
-           }
-        },
+        // hardhat: {
+        //    forking: {
+        //     enabled: true,
+        //    }
+        // },
     },
     gasReporter: {
         enabled: true,

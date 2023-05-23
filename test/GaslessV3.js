@@ -565,6 +565,7 @@ async function getTokenFromUniswap(data, token, tokenAddress) {
 
 function getSigner(index) {
     const accounts = config.networks.hardhat.accounts;
+    console.log(accounts, "Accounts $$$$");
     let relayerWallet = ethers.Wallet.fromMnemonic(
         accounts.mnemonic,
         accounts.path + `/${index}`

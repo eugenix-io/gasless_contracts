@@ -19,6 +19,21 @@
       "address": "0x2Da3632105C48e6acc061812BB6979EB8a55b0Fb",
       "txHash": "0xb49d9f0ea588028da3d539f14a982fd0d993acaef26e85d492cbac11b5625467",
       "kind": "transparent"
+    },
+    {
+      "address": "0x328Ba5F5a1021AA93f0AE0cB6535C874ce1Ca2e6",
+      "txHash": "0xf43b27368607dff37eaf164e8c54ec7fe6f1566fd291ecf27906d10be1f14161",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xFC168468b9D33e4a5d67FF43d1b8b8A9D8E68489",
+      "txHash": "0x0379139ab57261210a65de2837378b6afcbf6b03119c0e33e10e4d1cd34be1dd",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xC0803eF4EAd2713bc889821aE835EDF481b0A30a",
+      "txHash": "0xd717d28aecd1a8ee0b84a59cda4e9f01de662e07bd519dab78feae5728fa1563",
+      "kind": "transparent"
     }
   ],
   "impls": {
@@ -165,6 +180,146 @@
     "5d480a143ebebc21ce1feec5cf41748744a0497bf76f6da31ada7bde8963b088": {
       "address": "0x0F1C5E485156bdAeD2DE110919aa1067EB25fc6F",
       "txHash": "0xf4eac16fdc9d57416dd523ac92bcd4adcf4a0a103ba23cccb49daffe524ab55d",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "WrappedNative",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "GaslessV3",
+            "src": "contracts/GaslessV3.sol:20"
+          },
+          {
+            "label": "gasForSwap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_uint256",
+            "contract": "GaslessV3",
+            "src": "contracts/GaslessV3.sol:30"
+          },
+          {
+            "label": "gasForApproval",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_uint256",
+            "contract": "GaslessV3",
+            "src": "contracts/GaslessV3.sol:31"
+          },
+          {
+            "label": "DOMAIN_SEPARATOR",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_bytes32",
+            "contract": "GaslessV3",
+            "src": "contracts/GaslessV3.sol:32"
+          },
+          {
+            "label": "nonces",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "GaslessV3",
+            "src": "contracts/GaslessV3.sol:35"
+          },
+          {
+            "label": "approvalNonces",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "GaslessV3",
+            "src": "contracts/GaslessV3.sol:36"
+          },
+          {
+            "label": "defaultGasPrice",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_uint256",
+            "contract": "GaslessV3",
+            "src": "contracts/GaslessV3.sol:49"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "cd445caa9c07bbb8045c16b6d9d172e1ee7399a4591bea23aefbb26206104709": {
+      "address": "0xAb634E638870e8e209e62b33A3df7caa33c83092",
+      "txHash": "0xa1cab284d1c7bc7d1bd6f7fbda8f563848814eabb364b39a6ea57230a6d6bbcb",
       "layout": {
         "solcVersion": "0.8.17",
         "storage": [
