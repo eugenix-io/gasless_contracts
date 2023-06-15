@@ -4,7 +4,7 @@ require('@nomicfoundation/hardhat-toolbox');
 require('dotenv').config();
 
 const NODE_URL =
-    'https://polygon-mainnet.g.alchemy.com/v2/OUyLer3Ubv9iwexAqckuwyPtJ_KczKRD';
+    'https://polygon-mainnet.g.alchemy.com/v2/oYL3zphjRJ5SgPB04yLeh2oh0BvtcQuI';
 
 const configParams = {
     wrappedTokenAddress: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
@@ -39,6 +39,6 @@ module.exports = _.merge(require('./hardhat.config'), {
             'https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice',
     },
     etherscan: {
-        apiKey: 'DDZ33H8RZYENMTDX5KCM67FW1HBJD5CRUC',
+        apiKey: '4TZ25RQ9DT734YTVPXGQJQSY4PQEK117TF',
     },
 });
