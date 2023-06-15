@@ -1,9 +1,10 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const sigUtil = require('@metamask/eth-sig-util');
-const { config } = require('hardhat');
+const { config, upgrades } = require('hardhat');
 const axios = require('axios');
-const { domainType } = require('ethers-eip712');
+const aaveABi = require('./util/aaveAbi.json');
+// const { domainType } = require('ethers-eip712');
 
 const getTestCases = () => {
     switch (process.env.TEST_NETWORK) {
@@ -11,6 +12,8 @@ const getTestCases = () => {
             return require('./testCases/polygon');
         case 'arbitrum':
             return require('./testCases/arbitrum');
+        case 'ethereum':
+            return require('./testCases/ethereum');
     }
     throw 'TEST_NETWORK must be defined to run test cases';
 };
@@ -102,6 +105,8 @@ async function getSignature({
 
     dataToSign.types[messageType.name] = messageType.types;
 
+    console.log(JSON.stringify(dataToSign), "dataToSign hereer...");
+
     let signature = sigUtil.signTypedData({
         privateKey: Buffer.from(wallet.privateKey.slice(2), 'hex'),
         data: dataToSign,
@@ -124,6 +129,7 @@ describe('Generic Contract Functions', function () {
         owner = getSigner(0);
         relayer = getSigner(1);
         main = await deployContract();
+        await main.deployed();
         console.log('MAIN ADDRESS FIRST DEPLOYMENT - ', main.address);
     });
 
@@ -158,6 +164,7 @@ describe('Generic Contract Functions', function () {
     describe('Iterative test cases', function () {
         before(async () => {
             main = await deployContract();
+            await main.deployed();
             console.log('MAIN ADDRESS SECOND DEPLOYMENT - ', main.address);
         });
 
@@ -186,7 +193,7 @@ function describeTestForGaslessSwaps(data) {
         let toTokenAddress = data.toTokenAddress;
 
         this.beforeAll(async () => {
-            token = await ethers.getContractAt('ERC20', tokenAddress, owner);
+            token = await ethers.getContractAt('ERC20Upgradeable', tokenAddress, owner);
         });
 
         it('Get token from Uniswap', async () => {
@@ -204,25 +211,30 @@ function describeTestForGaslessSwaps(data) {
         it('Swap tokens without fees', async () => {
             let mainRelayer = await main.connect(relayer);
 
-            let toToken = await ethers.getContractAt('ERC20', toTokenAddress);
+            let toToken = await ethers.getContractAt('ERC20Upgradeable', toTokenAddress);
             let initialTokenBalUser = await toToken.balanceOf(owner.address);
+            console.log(initialTokenBalUser, "initialTokenBalUser $$$$");
             console.log('this is initial token: ' + initialTokenBalUser);
             let initialnativeBalUser = await ethers.provider.getBalance(
                 owner.address
             );
             let initialFeesBalContract = await token.balanceOf(main.address);
+            
             let initialNonce = await main.nonces(owner.address);
 
             let amountIn =
                 data.decimals == 6
-                    ? ethers.BigNumber.from(10 ** 6)
+                    ? ethers.BigNumber.from(10 ** 12)
                     : ethers.utils.parseEther('1');
             let totalBalance = await token.balanceOf(owner.address);
             if (data.amountIn) {
                 amountIn = data.amountIn;
-            } else if (amountIn.gt(totalBalance)) {
+            }
+            if (amountIn.gt(totalBalance)) {
                 amountIn = totalBalance;
             }
+
+            console.log(amountIn, "amountIN OF swap $$$");
 
             let uniswapGas = await main.gasForSwap();
             let [tonativePath, tonativeFees] = await getRoute(
@@ -304,7 +316,7 @@ function describeTestsForGaslessApproval(data) {
         let tokenAddress = data.tokenAddress;
 
         this.beforeAll(async () => {
-            token = await ethers.getContractAt('ERC20', tokenAddress, owner);
+            token = await ethers.getContractAt('ERC20Upgradeable', tokenAddress, owner);
         });
 
         it('Get token from Uniswap', async () => {
@@ -312,36 +324,124 @@ function describeTestsForGaslessApproval(data) {
         });
 
         it('Get approval', async () => {
+            // DAI variables
+
             let deadline = Math.round(new Date().getTime() / 1000 + 10_000);
             let value = ethers.utils.parseEther('10000').toString();
+
+            console.log('getting tk nonces contract...');
 
             let tokenNonces = await ethers.getContractAt(
                 'ERC20Nonces',
                 tokenAddress
             );
-            let tokenNonce = parseInt(await tokenNonces.nonces(owner.address));
-            let {
-                r: approvalSigR,
-                s: approvalSigS,
-                v: approvalSigV,
-            } = await getSignature({
-                wallet: owner,
-                message: {
-                    owner: owner.address,
-                    spender: main.address,
-                    value: value,
-                    nonce: tokenNonce,
-                    deadline,
-                },
-                messageType: TestCases.constants.permitType,
-                domainType: TestCases.constants.domainType,
-                domainData: {
-                    name: await token.name(),
-                    version: data.domainVersion || '1',
-                    verifyingContract: tokenAddress,
-                    chainId: config.networks.hardhat.chainId,
-                },
-            });
+
+            console.log(owner.address, 'Owner address...');
+            // Handle tokenNonces for AAVE
+            // AAVE has nonce declared as _nonce get contract with abi
+            let tokenNonce;
+
+            if (data.symbol === 'AAVE_ETH') {
+                const aaveContract = await ethers.getContractAt(
+                    aaveABi,
+                    tokenAddress,
+                    owner
+                );
+
+                tokenNonce = parseInt(await aaveContract._nonces(owner.address));
+            } else {
+                tokenNonce = parseInt(await tokenNonces.nonces(owner.address));
+            }
+
+
+            console.log(tokenNonce, 'Nonce of token');
+            let approvalSigR, approvalSigS, approvalSigV;
+            // DAI
+            if (data.binaryPermitType === true) {
+                let {
+                    r,
+                    s,
+                    v,
+                } = await getSignature({
+                    wallet: owner,
+                    message: {
+                        holder: owner.address,
+                        spender: main.address,
+                        nonce: tokenNonce,
+                        expiry: deadline,
+                        allowed: true,
+                    },
+                    messageType: TestCases.constants.daiPermitType,
+                    domainType: TestCases.constants.domainType,
+                    domainData: {
+                        name: await token.name(),
+                        version: data.domainVersion || '2',
+                        verifyingContract: tokenAddress,
+                        chainId: config.networks.hardhat.chainId,
+                    },
+                });
+
+                approvalSigR = r;
+                approvalSigS = s;
+                approvalSigV = v;
+
+                console.log('Got the signatures $$$');
+
+            } else if (data.symbol === 'UNI') {
+                let {
+                    r,
+                    s,
+                    v,
+                } = await getSignature({
+                    wallet: owner,
+                    message: {
+                        owner: owner.address,
+                        spender: main.address,
+                        value: value,
+                        nonce: tokenNonce,
+                        deadline,
+                    },
+                    messageType: TestCases.constants.permitType,
+                    domainType: TestCases.constants.uniswapDomainType,
+                    domainData: {
+                        name: await token.name(),
+                        verifyingContract: tokenAddress,
+                        chainId: config.networks.hardhat.chainId,
+                    },
+                });
+
+                approvalSigR = r;
+                approvalSigS = s;
+                approvalSigV = v;
+            } else {
+                let {
+                    r,
+                    s,
+                    v,
+                } = await getSignature({
+                    wallet: owner,
+                    message: {
+                        owner: owner.address,
+                        spender: main.address,
+                        value: value,
+                        nonce: tokenNonce,
+                        deadline,
+                    },
+                    messageType: TestCases.constants.permitType,
+                    domainType: TestCases.constants.domainType,
+                    domainData: {
+                        name: await token.name(),
+                        version: data.domainVersion || '1',
+                        verifyingContract: tokenAddress,
+                        chainId: config.networks.hardhat.chainId,
+                    },
+                });
+
+                approvalSigR = r;
+                approvalSigS = s;
+                approvalSigV = v;
+            }
+            console.log('Checking nonces...');
             let contractNonce = await main.approvalNonces(owner.address);
             let gasPrice = await ethers.provider.getGasPrice();
 
@@ -361,6 +461,7 @@ function describeTestsForGaslessApproval(data) {
                 toNativeFees: toNativeFees.reverse(),
                 gasForApproval: gasForApproval.toString(),
                 nonce: parseInt(contractNonce),
+                tokenNonce
             };
 
             console.log('these are the params', params);
@@ -377,6 +478,16 @@ function describeTestsForGaslessApproval(data) {
             });
 
             let initialTokenBalance = await token.balanceOf(main.address);
+            console.log('Reached herer params $$....',
+            JSON.stringify({
+                ...params,
+                approvalSigR,
+                approvalSigS,
+                approvalSigV,
+                sigR,
+                sigS,
+                sigV,
+            }));
             await main.approveWithoutFees({
                 ...params,
                 approvalSigR,
@@ -454,6 +565,7 @@ async function getTokenFromUniswap(data, token, tokenAddress) {
 
 function getSigner(index) {
     const accounts = config.networks.hardhat.accounts;
+    console.log(accounts, "Accounts $$$$");
     let relayerWallet = ethers.Wallet.fromMnemonic(
         accounts.mnemonic,
         accounts.path + `/${index}`
@@ -464,12 +576,12 @@ function getSigner(index) {
 async function deployContract() {
     console.log('deploying main contract...');
     const Main = await ethers.getContractFactory('GaslessV3');
-    return await Main.deploy(
+    return await upgrades.deployProxy(Main, [
         WrappedNative,
         ethers.BigNumber.from(chainConfig.gasForSwap),
         ethers.BigNumber.from(chainConfig.gasForApproval),
-        ethers.BigNumber.from(chainConfig.defaultGasPrice)
-    );
+        ethers.BigNumber.from(chainConfig.defaultGasPrice),
+    ]);
 }
 
 async function getRoute(amount, type, tokenIn, tokenOut) {

@@ -27,6 +27,11 @@ module.exports = _.merge(require('./hardhat.config'), {
             accounts: [process.env.DEPLOY_PRIVATE_KEY],
             config: configParams,
         },
+        polygon_mumbai: {
+            url: 'https://polygon-mumbai.g.alchemy.com/v2/UutSwAIWYCQtrhf2xOv9z5LXetzzK6X5',
+            accounts: [process.env.DEPLOY_PRIVATE_KEY],
+            config: configParams,
+        },
     },
     gasReporter: {
         token: 'MATIC',
