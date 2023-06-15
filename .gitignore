@@ -1,4 +1,4 @@
-node_modules
+node_modules/
 .env
 coverage
 coverage.json
@@ -9,3 +9,8 @@ typechain-types
 cache
 artifacts
 
+# OpenZeppelin
+.openzeppelin/unknown-*.json
+
+# vscode
+.vscode/*
