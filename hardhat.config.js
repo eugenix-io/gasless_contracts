@@ -24,9 +24,9 @@ module.exports = {
     },
     networks: {
         hardhat: {
-             forking: {
-                 enabled: true,
-             },
+            //  forking: {
+            //      enabled: true,
+            //  },
          },
     },
     gasReporter: {

@@ -184,6 +184,120 @@ describe('Generic Contract Functions', function () {
             console.warn('No gasless approval test found');
         }
     });
+
+    describe('Initiating sushi swap test ->', () => {
+        const tokenIn = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+        const amountIn = "100000";
+        const tokenOut = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F";
+        const amountOutMin = '10000';
+        const isNative = false;
+        const route =
+            "0x022791bca1f2de4661ed88a30c99a7a9449aa8417401ffff004b1f1e2435a9c96f7330faea190ef6a7c8d7000101b3b0601aec5a363c535a709585ad3cdd9965cc94";
+
+        let token;
+
+        this.beforeAll('Get the token', async () => {
+            token = await ethers.getContractAt('ERC20', tokenIn, owner);
+        });
+
+        it('Buying erc-20 token from sushiswap', async () => {
+            console.log("reached here")
+            const initBalanceOfERC20 = await token.balanceOf(owner.address);
+            console.log("init balance", initBalanceOfERC20)
+
+            await getERC20TokenFromSushiSwap(owner, main, tokenIn);
+
+            const finalBalanceOfERC20 = await token.balanceOf(owner.address);
+
+            expect(parseInt(finalBalanceOfERC20)).greaterThan(parseInt(initBalanceOfERC20));
+
+        })
+
+        it('Getting approval of token for Sushiswap', async () => {
+            const balanceOfOwner = await token.balanceOf(owner.address);
+            console.log(balanceOfOwner, 'balanceOfOwner of ###');
+            await token.approve(main.address, balanceOfOwner);
+            const currAllow = await token.allowance(owner.address, main.address);
+            console.log(currAllow, main.address, 'Allowance of user@@@@');
+            expect(currAllow).to.equal(
+                balanceOfOwner
+            );
+        });
+
+        it('Swapping on sushiSwap', async () => {
+            const nonce = await main.nonces(owner.address);
+            // 0x0d6e43d4d7944408d9a5A10BC57B4348d61cD764
+            // 0x0d6e43d4d7944408d9a5a10bc57b4348d61cd764
+            console.log(nonce, 'Nonce of owner...');
+
+            let messagePayload = {
+                tokenIn,
+                amountIn,
+                tokenOut,
+                amountOutMin,
+                to: owner.address,
+                nonce: parseInt(nonce),
+                route,
+                isNative
+            };
+
+            const domainData = await getDomainData(main);
+            console.log(domainData, 'Domain data sushi swap');
+
+            const { r, s, v } = await getSignature({
+                wallet: owner,
+                message: messagePayload,
+                messageType: {
+                    types: [
+                        { type: 'address', name: 'tokenIn' },
+                        { type: 'uint', name: 'amountIn' },
+                        { type: 'address', name: 'tokenOut' },
+                        { type: 'uint', name: 'amountOutMin' },
+                        { type: 'address', name: 'to' },
+                        { type: 'uint', name: 'nonce' },
+                        { type: 'bytes', name: 'route' }
+                    ],
+                    name: 'SwapGaslessSushiSwapFlint',
+                },
+                domainType: gaslessDomainType,
+                domainData: domainData,
+            });
+
+            console.log(r, s, v, 'Signature RSV');
+
+
+
+            const toToken = await ethers.getContractAt(
+                'ERC20',
+                tokenOut,
+                owner
+            );
+            const initialToTokenBal = await toToken.balanceOf(owner.address);
+
+            console.log(initialToTokenBal, 'Token out balance for owner...');
+
+            const payload = {
+                ...messagePayload,
+                sigR: r,
+                sigS: s,
+                sigV: v,
+            };
+
+            console.log(payload, 'Payload for tx...');
+
+            console.log(main.address, '###### contract address###');
+
+            const tx = await main.swapGaslessSushiSwapFlint(payload);
+
+            let txWait = await tx.wait();
+
+            console.log(txWait, 'Swap tx...');
+
+            expect(await toToken.balanceOf(owner.address)).greaterThan(
+                initialToTokenBal
+            );
+        });
+    });
 });
 
 function describeTestForGaslessSwaps(data) {
@@ -219,7 +333,7 @@ function describeTestForGaslessSwaps(data) {
                 owner.address
             );
             let initialFeesBalContract = await token.balanceOf(main.address);
-            
+
             let initialNonce = await main.nonces(owner.address);
 
             let amountIn =
@@ -479,15 +593,15 @@ function describeTestsForGaslessApproval(data) {
 
             let initialTokenBalance = await token.balanceOf(main.address);
             console.log('Reached herer params $$....',
-            JSON.stringify({
-                ...params,
-                approvalSigR,
-                approvalSigS,
-                approvalSigV,
-                sigR,
-                sigS,
-                sigV,
-            }));
+                JSON.stringify({
+                    ...params,
+                    approvalSigR,
+                    approvalSigS,
+                    approvalSigV,
+                    sigR,
+                    sigS,
+                    sigV,
+                }));
             await main.approveWithoutFees({
                 ...params,
                 approvalSigR,
@@ -604,4 +718,52 @@ async function getRoute(amount, type, tokenIn, tokenOut) {
     ];
     let feePath = response.data.route[0].map((pair) => pair.fee);
     return [tokenPath, feePath];
+}
+
+async function getERC20TokenFromSushiSwap(owner, mainContract, erc20TokenAddress) {
+
+    const currNativeBal = await ethers.provider.getBalance(owner.address);
+
+    console.log(currNativeBal, '$$$$$ balance');
+
+    const sushiAbi = [
+        "function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)"
+    ];
+
+    const amountOut = '100000';
+    const path = ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', erc20TokenAddress]
+
+    // 10 mins deadline
+    const tw = 10 * 60;
+    const d = new Date();
+    const seconds = d.getTime() / 1000;
+
+    const deadline = tw + parseInt(seconds);
+
+    const ISushiAbi = new ethers.utils.Interface(sushiAbi);
+    const callDataPayload = ISushiAbi.encodeFunctionData("swapETHForExactTokens", [
+        amountOut,
+        path,
+        owner.address,
+        deadline
+    ]);
+
+    const txOption = {
+        to: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506',
+        value: '1000000000000000000',
+        data: callDataPayload
+    };
+
+    console.log(txOption, 'tx options');
+
+    const tx = await owner.sendTransaction(txOption);
+
+    console.log(tx, 'Buying erc txn');
+
+    const tokenContract = await ethers.getContractAt('ERC20', erc20TokenAddress, owner);
+
+    const bal = await tokenContract.balanceOf(owner.address);
+
+    console.log(bal, 'balance now %%%%');
+
 }
