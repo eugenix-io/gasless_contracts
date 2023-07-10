@@ -175,30 +175,11 @@ contract GaslessV4 is Ownable {
         );
 
         uint256 amountOutRouter = _swapOnSushiSwapGasless(params.tokenIn,params.amountIn,params.tokenOut,params.amountOutMin,params.to, params.route, params.isNative);
-
         return amountOutRouter;
 
     }
     function transferERC20ToFlintContract(address tokenIn, address userAddress, uint256 amountIn) internal {
-        console.log('transferERC20ToFlintContract');
-        console.log(tokenIn);
-        console.log(amountIn);
-        ERC20 tokenContract = ERC20(tokenIn);
-
-        uint256 balErc20 = tokenContract.balanceOf(userAddress);
-
-        console.log('Balance erc20');
-        console.log(balErc20);
-
-        uint256 allowance = tokenContract.allowance(userAddress, address(this));
-
-        console.log('allowance & contract address');
-
-        console.log(allowance);
-
-        console.log(address(this));
-
-        console.log('transfer from');
+        ERC20 tokenContract = ERC20(tokenIn);      
         tokenContract.transferFrom(
             userAddress,
             address(this),
@@ -206,17 +187,14 @@ contract GaslessV4 is Ownable {
         );
     }
      function approveRouterForFlintContract(address routerAddress, address tokenIn, uint256 amountIn) internal {
-        console.log('approveRouterForFlintContract');
-        console.log(routerAddress);
-        console.log(tokenIn);
-        console.log(amountIn);
+     
         ERC20 tokenContract = ERC20(tokenIn);
         //check if we already have the allowance for fromTokenContract
         if (
             tokenContract.allowance(address(this), routerAddress) <
             amountIn
         ) {
-            console.log('approval');
+
             TransferHelper.safeApprove(
                 tokenIn,
                 routerAddress,
@@ -235,23 +213,11 @@ contract GaslessV4 is Ownable {
     ) internal returns(uint256) {
 
         if (isNative == false) {
-            console.log('ERC20 transfer to flint contract');
+
             transferERC20ToFlintContract(tokenIn, to, amountIn);
 
             approveRouterForFlintContract(SUSHI_SWAP_ROUTER_ADDRESS, tokenIn, amountIn);
         }
-
-
-        // Perform swap on router
-
-        console.log('Swapping on sushi...');
-        console.log(tokenIn);
-        console.log(amountIn);
-        console.log(tokenOut);
-        console.log(amountOutMin);
-        console.log(to);
-        console.logBytes(route);
-
 
         uint256 amountOut = sushiSwapRouter.processRoute(
             tokenIn,
@@ -263,7 +229,6 @@ contract GaslessV4 is Ownable {
         );
 
         return amountOut;
-
     }
     function _getDigestSushiSwap(
         address tokenIn,
@@ -298,7 +263,7 @@ contract GaslessV4 is Ownable {
     function swapWithoutFees(
         SwapWithoutFeesParams memory params
     ) external returns (uint256) {
-        console.log('getting digest');
+
         bytes32 digest = _getDigest(
             params.amountIn,
             params.tokenIn,
@@ -309,7 +274,7 @@ contract GaslessV4 is Ownable {
             params.nonce,
             params.isTokenOutNative
         );
-        console.log('verifying digest');
+
         _verifyDigest(
             digest,
             params.userAddress,
@@ -323,7 +288,7 @@ contract GaslessV4 is Ownable {
             params.isTokenOutNative = false;
         }
 
-        console.log('internal swap');
+
         return _swapWithoutFees(params);
     }
 
@@ -345,7 +310,7 @@ contract GaslessV4 is Ownable {
             tokenContract.allowance(address(this), address(swapRouter)) <
             params.amountIn
         ) {
-            console.log('approval');
+
             TransferHelper.safeApprove(
                 params.tokenIn,
                 address(swapRouter),
@@ -359,8 +324,6 @@ contract GaslessV4 is Ownable {
             ? gasForSwap * tx.gasprice
             : gasForSwap * defaultGasPrice;
 
-        console.log('this is gas for swap', gasForSwap);
-        console.log('this is gas price', tx.gasprice);
 
         require(
             params.toNativePath[params.toNativePath.length - 1] ==
@@ -372,16 +335,14 @@ contract GaslessV4 is Ownable {
             'Fees should be collected according to WrappedNative price'
         );
 
-        console.log('GETTING THE SWAPPED IN AMOUNT');
-        console.logBytes(
-            _encodePathV3(params.toNativePath, params.toNativeFees)
-        );
+
+       
         swappedIn = quoter.quoteExactOutput(
             _encodePathV3(params.toNativePath, params.toNativeFees),
             uniswapFees
         );
 
-        console.log('THIS IS SWAPPED IN -> ', swappedIn);
+
 
         require(swappedIn < params.amountIn, 'Swap amount is too low');
 
@@ -470,13 +431,13 @@ contract GaslessV4 is Ownable {
             ? gasForApproval * tx.gasprice
             : gasForApproval * defaultGasPrice;
 
-        console.log('this is approvalFees: ', approvalFees);
+
         uint fees = quoter.quoteExactOutput(
             _encodePathV3(params.toNativePath, params.toNativeFees),
             approvalFees
         );
 
-        console.log('Fees: ', fees);
+
         ERC20Permit token = ERC20Permit(params.tokenAddress);
         token.permit(
             params.userAddress,
